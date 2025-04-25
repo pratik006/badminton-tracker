@@ -14,6 +14,7 @@ function App() {
   const [matchType, setMatchType] = useState("Singles");
   const [buchholzEnabled, setBuchholzEnabled] = useState(true);
   const leaderboardRef = useRef(null);
+  const matchHistoryRef = useRef(null);
 
   // Load players and matches initially
   useEffect(() => {
@@ -40,14 +41,23 @@ function App() {
   // Scroll leaderboard into view on nav button click
   const scrollToLeaderboard = () => {
     if (leaderboardRef.current) {
+      //const yOffset = -10;
+      //const y = leaderboardRef.current.getBoundingClientRect().top + window.scrollY + yOffset;
       leaderboardRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  // Scroll Match history into view on nav button click
+  const scrollToMatchHistory = () => {    
+    if (matchHistoryRef.current) {
+      matchHistoryRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
 
   return (
     <>
-      <Header />
-      <NavBar onLeaderboardClick={scrollToLeaderboard} />
+      <Header onLeaderboardClick={scrollToLeaderboard} onMatchHistoryClick={scrollToMatchHistory} />
+      {/* <NavBar onLeaderboardClick={scrollToLeaderboard} /> */}
 
       <main>
         <section>
@@ -60,7 +70,7 @@ function App() {
           />
         </section>
 
-        <section>
+        <section ref={matchHistoryRef}>
           <h2>Match History</h2>
           <MatchHistory matches={matches} />
         </section>

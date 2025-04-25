@@ -1,5 +1,6 @@
 import React from "react";
 
+// deprecated, not uised any more
 function NavBar({ onLeaderboardClick }) {
   return (
     <nav className="main-nav" aria-label="Primary navigation">

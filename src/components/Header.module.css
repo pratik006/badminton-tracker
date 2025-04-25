@@ -1,0 +1,79 @@
+/* Container to hold header and hamburger menu */
+.header_wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+  }
+
+  /* Hamburger Menu - Hidden on larger screens */
+  .hamburger_menu {
+    display: none;
+    flex-direction: column;
+    cursor: pointer;
+  }
+
+  .hamburger_menu_div {
+    width: 25px;
+    height: 3px;
+    margin: 5px;
+    background-color: #333;
+  }
+
+  /* Navbar links - Hidden on mobile */
+  .nav_links {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .nav_links_li {
+    margin-left: 20px;
+  }
+
+  .nav_links_button {
+    text-decoration: none;
+    color: #333;
+    font-size: 1rem;
+  }
+
+  /* Mobile menu */
+  .mobile_menu {
+    display: none;
+    flex-direction: column;
+    position: absolute;
+    top: 60px;
+    right: 20px;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .mobile_menu a {
+    padding: 10px;
+    text-align: center;
+    text-decoration: none;
+    color: #333;
+    border-top: 1px solid #ddd;
+  }
+
+  .mobile_menu a:first-child {
+    border-top: none;
+  }
+
+  /* Media query for small screens */
+  @media screen and (max-width: 768px) {
+    .hamburger_menu {
+      display: flex;
+    }
+
+    .nav_links {
+      display: none;
+    }
+
+    /* Show the mobile menu when the class 'active' is added */
+    .mobile_menu_active {
+      display: flex;
+    }
+}

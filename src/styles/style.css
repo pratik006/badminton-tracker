@@ -92,8 +92,9 @@
   
   .btn-group button.active,
   .btn-group button:hover {
-    background: #555;
+    background: var(--color-primary);
     transform: scale(1.05);
+    color: black;
   }
   
   form {

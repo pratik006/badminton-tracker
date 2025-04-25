@@ -38,6 +38,11 @@ export const storeFirestore = (() => {
   
     // Simulated fetch match history
     async function fetchMatchHistory() {
+        const querySnapshot = await getDocs(collection(db, '/matches'));
+        const matchList = querySnapshot.docs.map(match => ({ id: match.id, ...match.data() }));        
+        if(!matchCache || matchCache.length === 0)  
+          matchCache = matchCache.concat(matchList);
+
       // TODO: Replace with Firestore GET REST
       return new Promise(res => {
         setTimeout(() => {

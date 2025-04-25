@@ -11,7 +11,7 @@ const store = storeFirestore;
 function App() {
   const [playersList, setPlayersList] = useState([]);
   const [matches, setMatches] = useState([]);
-  const [matchType, setMatchType] = useState("Singles");
+  const [matchType, setMatchType] = useState("Doubles");
   const [buchholzEnabled, setBuchholzEnabled] = useState(true);
   const leaderboardRef = useRef(null);
   const matchHistoryRef = useRef(null);

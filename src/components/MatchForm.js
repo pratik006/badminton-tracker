@@ -140,20 +140,20 @@ function MatchForm({ playersList, onAddMatch, matchType, onMatchTypeChange }) {
       <div className="btn-group" role="group" aria-label="Select match type">
         <button
           type="button"
-          className={matchType === "Singles" ? "active" : ""}
-          aria-pressed={matchType === "Singles"}
-          onClick={() => onMatchTypeChange("Singles")}
-        >
-          Singles
-        </button>
-        <button
-          type="button"
           className={matchType === "Doubles" ? "active" : ""}
           aria-pressed={matchType === "Doubles"}
           onClick={() => onMatchTypeChange("Doubles")}
         >
           Doubles
         </button>
+        <button
+          type="button"
+          className={matchType === "Singles" ? "active" : ""}
+          aria-pressed={matchType === "Singles"}
+          onClick={() => onMatchTypeChange("Singles")}
+        >
+          Singles
+        </button>        
       </div>
 
       <div className="player-inputs">

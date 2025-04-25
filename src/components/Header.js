@@ -29,8 +29,8 @@ function Header({ onLeaderboardClick, onMatchHistoryClick }) {
 
         {/* Mobile Menu (only visible when 'active' class is added) */}
         <div className={`${styles.mobile_menu} ${isMenuOpen ? styles.mobile_menu_active : ""}`}>
-          <button className={`${styles.nav_links_button}`} onClick={onLeaderboardClick} >Leaderboard</button>
-          <button className={`${styles.nav_links_button}`} onClick={onMatchHistoryClick} >Match history</button>
+          <button className={`${styles.nav_links_button}`} onClick={() => {onLeaderboardClick(); setIsMenuOpen(!isMenuOpen);}} >Leaderboard</button>
+          <button className={`${styles.nav_links_button}`} onClick={() => {onMatchHistoryClick(); setIsMenuOpen(!isMenuOpen);}} >Match history</button>
         </div>
       </div>
     </header>

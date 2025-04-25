@@ -6,8 +6,6 @@ import MatchHistory from "./MatchHistory";
 import Leaderboard from "./Leaderboard";
 //import * as store from "../utils/storeLocal"; // Using local store here
 import { storeFirestore } from "../utils/storeFirestore"; // Using firestore
-import { db } from '../utils/firestore';
-const { getFirestore, collection, getDocs, setDoc, doc } = require('firebase/firestore');
 const store = storeFirestore;
 
 function App() {

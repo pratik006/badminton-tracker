@@ -12,7 +12,6 @@ export const storeFirestore = (() => {
         const querySnapshot = await getDocs(collection(db, '/players'));
         const playersList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-
         // TODO: Replace this with real Firestore REST fetch
         if (playersListCache.length) return playersListCache;
     
@@ -43,7 +42,6 @@ export const storeFirestore = (() => {
         if(!matchCache || matchCache.length === 0)  
           matchCache = matchCache.concat(matchList);
 
-      // TODO: Replace with Firestore GET REST
       return new Promise(res => {
         setTimeout(() => {
           res([...matchCache].reverse());

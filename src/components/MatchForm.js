@@ -289,9 +289,9 @@ function MatchForm({ playersList, onAddMatch, matchType, onMatchTypeChange }) {
         ))}
       </div>
 
-      <button type="button" id="addSetBtn" onClick={addSet} disabled={scores.length >= MAX_SETS}>
+      {/* <button type="button" id="addSetBtn" onClick={addSet} disabled={scores.length >= MAX_SETS}>
         Add Set
-      </button>
+      </button> */}
 
       <button type="submit" className="submit-btn" disabled={adding}>
         {adding ? "Adding..." : "Add Match to History"}

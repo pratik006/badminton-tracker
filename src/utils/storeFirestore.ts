@@ -1,4 +1,4 @@
-import { Match, Player } from '../types/types';
+import { Match, MatchFirestore, Player } from '../types/types';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, getDocs, setDoc, doc } from 'firebase/firestore';
 
@@ -18,16 +18,20 @@ const db = getFirestore(app);
 export const storeFirestore = (() => {
   
     // Dummy local cache since no real Firestore here
-    let playersListCache: Player[] = [];
+    const playersListCache: Player[] = [];
     let matchCache: Match[] = [];
   
     // Simulated fetch for players
     async function fetchPlayersList() {
-        const querySnapshot = await getDocs(collection(db, '/players'));
-        const players: Player[] = querySnapshot.docs.map((doc: any) => ({ id: doc.id, name: doc.get('name') }));
-        if (playersListCache.length) return playersListCache;
+      if (playersListCache.length) return playersListCache;
 
-      playersListCache = players;
+      const querySnapshot = await getDocs(collection(db, '/players'));
+      const players: Player[] = querySnapshot.docs.map((doc: any) => ({ id: doc.id, name: doc.get('name') }));
+      
+      // race condition check
+      if (playersListCache.length) return playersListCache;
+      
+      playersListCache.concat(players);
       return players;
     }
   
@@ -47,10 +51,15 @@ export const storeFirestore = (() => {
   
     // Simulated fetch match history
     async function fetchMatchHistory() {
+      const playersCache = await fetchPlayersList();
       const querySnapshot = await getDocs(collection(db, '/matches'));
-        const matchList: Match[] = querySnapshot.docs.map((match: any) => ({ id: match.id, ...match.data() }));        
-        if(!matchCache || matchCache.length === 0)  
-          matchCache = matchCache.concat(matchList);
+      const matchList: Match[] = querySnapshot.docs.map((match: any) => ({ id: match.id, ...match.data() }))
+          .map((match: any) => ({ ...match, 
+            team1: match.team1.map((p: any) => ({ id: p.id, name: playersCache.find((player: Player) => player.id === p.id)?.name })), 
+            team2: match.team2.map((p: any) => ({ id: p.id, name: playersCache.find((player: Player) => player.id === p.id)?.name })) 
+          }));
+      if(!matchCache || matchCache.length === 0)  
+        matchCache = matchCache.concat(matchList);
 
       return new Promise<Match[]>(res => {
         setTimeout(() => {

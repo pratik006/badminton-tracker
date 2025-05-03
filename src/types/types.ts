@@ -1,3 +1,5 @@
+import { DocumentReference } from "firebase/firestore";
+
 export type Match = {
     id: string | number;
     team1: Player[];
@@ -7,6 +9,16 @@ export type Match = {
     team2Scores: number[];
     winner: number; // 0 = tie/invalid, 1 = team1, 2 = team2
   };
+
+  export type MatchFirestore = {
+    id: string | number;
+    team1: DocumentReference[];
+    team2: DocumentReference[];
+    matchDate?: string | null;
+    team1Scores: number[];
+    team2Scores: number[];
+    winner: number; // 0 = tie/invalid, 1 = team1, 2 = team2
+  };  
   
 export type Matches = Match[];
 

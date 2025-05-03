@@ -6,7 +6,7 @@ export const LEADERBOARD_CONFIG = {
     winPoints: 3,
     drawPoints: 1,
     lossPoints: 0,
-    buchholzWeight: 0.4,
+    buchholzWeight: 0.004,
   };
   
   /**

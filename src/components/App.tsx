@@ -4,15 +4,15 @@ import NavBar from "./NavBar";
 import MatchForm from "./MatchForm";
 import MatchHistory from "./MatchHistory";
 import Leaderboard from "./Leaderboard";
-import * as store from "../utils/storeLocal"; // Using local store here
-//import { store } from "../utils/storeFirestore"; // Using firestore
+//import * as store from "../utils/storeLocal"; // Using local store here
+import { storeFirestore as store } from "../utils/storeFirestore"; // Using firestore
 import { Match, MatchType, Player } from "../types/types";
 
 function App() {
   const [playersList, setPlayersList] = useState<Player[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [matchType, setMatchType] = useState<MatchType>("Doubles");
-  const [buchholzEnabled, setBuchholzEnabled] = useState(true);
+  const [buchholzEnabled, setBuchholzEnabled] = useState(false);
   const leaderboardRef = useRef<HTMLDivElement>(null);
   const matchHistoryRef = useRef<HTMLDivElement>(null);
 

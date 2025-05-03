@@ -83,10 +83,10 @@ function Leaderboard({ matches, buchholzEnabled }: { matches: Match[]; buchholzE
         <thead>
           <tr key="leaderboard-header">
             <th>Player</th>
-            <th title="Adjusted points with Buchholz weighting">Points</th>
-            <th>Buchholz</th>
+            <th title="Adjusted points with Buchholz weighting">Points</th>            
             <th>Matches Played</th>
             <th>Matches Won</th>
+            <th>Buchholz</th>
             <th>Win %</th>
           </tr>
         </thead>
@@ -104,10 +104,10 @@ function Leaderboard({ matches, buchholzEnabled }: { matches: Match[]; buchholzE
               return (
                 <tr key={player.player.id}>
                   <td>{player.player.name}</td>
-                  <td>{player.points.toFixed(1)}</td>
-                  <td>{player.opponentPointsSum.toFixed(1)}</td>
+                  <td>{player.points.toFixed(1)}</td>                  
                   <td>{player.played}</td>
                   <td>{player.won}</td>
+                  <td>{player.opponentPointsSum.toFixed(1)}</td>
                   <td>{winPct}%</td>
                 </tr>
               );

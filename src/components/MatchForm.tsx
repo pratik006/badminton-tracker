@@ -1,14 +1,20 @@
 import React, { useState, useEffect } from "react";
+import { Match, MatchPlayer, Player, MatchType } from "../types/types";
 
 const MAX_SETS = 3;
 
-function MatchForm({ playersList, onAddMatch, matchType, onMatchTypeChange }) {
+function MatchForm({ playersList, onAddMatch, matchType, onMatchTypeChange }: 
+      { playersList: Player[]; 
+        onAddMatch: (match: Match) => Promise<void>; 
+        matchType: MatchType; 
+        onMatchTypeChange: (type: MatchType) => void 
+      }) {
   // Local form states
-  const [matchPlayers, setMatchPlayers] = useState({
-    team1p1: "",
-    team1p2: "",
-    team2p1: "",
-    team2p2: "",
+  const [matchPlayers, setMatchPlayers] = useState<MatchPlayer>({
+    team1p1: null,
+    team1p2: null,
+    team2p1: null,
+    team2p2: null,
   });
   const [scores, setScores] = useState([{ team1: "", team2: "" }]);
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
@@ -17,25 +23,25 @@ function MatchForm({ playersList, onAddMatch, matchType, onMatchTypeChange }) {
   useEffect(() => {
     // Reset players & scores on match type change
     if (matchType === "Singles") {
-      setMatchPlayers({ team1p1: "", team1p2: "", team2p1: "", team2p2: "" });
+      setMatchPlayers({ team1p1: null, team1p2: null, team2p1: null, team2p2: null });
       setScores([{ team1: "", team2: "" }]);
     } else {
-      setMatchPlayers({ team1p1: "", team1p2: "", team2p1: "", team2p2: "" });
+      setMatchPlayers({ team1p1: null, team1p2: null, team2p1: null, team2p2: null });
       setScores([{ team1: "", team2: "" }]);
     }
   }, [matchType]);
 
-  const handlePlayerChange = (e) => {
+  const handlePlayerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setMatchPlayers((prev) => ({ ...prev, [name]: value }));
-  };
+};
 
-  const handleScoreChange = (index, team, value) => {
+  const handleScoreChange = (index: number, team: string, value: string) => {
     // Allow digits only
     if (value === "" || /^\d+$/.test(value)) {
       setScores((prev) => {
         const copy = [...prev];
-        copy[index][team] = value;
+        copy[index][team as keyof typeof copy[0]] = value;
         return copy;
       });
     }
@@ -49,17 +55,17 @@ function MatchForm({ playersList, onAddMatch, matchType, onMatchTypeChange }) {
 
   const validateForm = () => {
     // Validate player fields filled & unique
-    const players =
+    const players: (Player|null)[] =
       matchType === "Singles"
         ? [matchPlayers.team1p1, matchPlayers.team2p1]
         : [matchPlayers.team1p1, matchPlayers.team1p2, matchPlayers.team2p1, matchPlayers.team2p2];
 
-    if (players.some((p) => p.trim() === "")) {
+    if (players.some((p) => p === null)) {
       alert("Please enter all player names.");
       return false;
     }
 
-    const lowered = players.map((p) => p.trim().toLowerCase());
+    const lowered = players.map((p) => p!.name.toLowerCase());
     if (new Set(lowered).size !== lowered.length) {
       alert("Player names must be unique.");
       return false;
@@ -82,7 +88,7 @@ function MatchForm({ playersList, onAddMatch, matchType, onMatchTypeChange }) {
     return true;
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!validateForm()) return;
 
@@ -112,6 +118,7 @@ function MatchForm({ playersList, onAddMatch, matchType, onMatchTypeChange }) {
     else if (t2Wins > t1Wins) winner = 2;
 
     const newMatch = {
+      id: -1,
       type: matchType,
       team1,
       team2,
@@ -121,15 +128,15 @@ function MatchForm({ playersList, onAddMatch, matchType, onMatchTypeChange }) {
       matchDate: date,
     };
 
-    await onAddMatch(newMatch);
+    await onAddMatch(newMatch as Match);
 
     setAdding(false);
     // Reset after add
     setMatchPlayers({
-      team1p1: "",
-      team1p2: "",
-      team2p1: "",
-      team2p2: "",
+      team1p1: null,
+      team1p2: null,
+      team2p1: null,
+      team2p2: null,
     });
     setScores([{ team1: "", team2: "" }]);
     setDate(new Date().toISOString().slice(0, 10));
@@ -166,14 +173,14 @@ function MatchForm({ playersList, onAddMatch, matchType, onMatchTypeChange }) {
             name="team1p1"
             list="team1p1List"
             autoComplete="off"
-            value={matchPlayers.team1p1}
+            value={matchPlayers.team1p1?.name}
             onChange={handlePlayerChange}
             required
             placeholder="Search or type"
           />
           <datalist id="team1p1List">
             {playersList.map((p) => (
-              <option key={p} value={p} />
+              <option key={p.id} value={p.name} />
             ))}
           </datalist>
         </div>
@@ -187,14 +194,14 @@ function MatchForm({ playersList, onAddMatch, matchType, onMatchTypeChange }) {
               name="team1p2"
               list="team1p2List"
               autoComplete="off"
-              value={matchPlayers.team1p2}
+              value={matchPlayers.team1p2?.name}
               onChange={handlePlayerChange}
               required
               placeholder="Search or type"
             />
             <datalist id="team1p2List">
               {playersList.map((p) => (
-                <option key={p} value={p} />
+                <option key={p.id} value={p.name} />
               ))}
             </datalist>
           </div>
@@ -208,14 +215,14 @@ function MatchForm({ playersList, onAddMatch, matchType, onMatchTypeChange }) {
             name="team2p1"
             list="team2p1List"
             autoComplete="off"
-            value={matchPlayers.team2p1}
+            value={matchPlayers.team2p1?.name}
             onChange={handlePlayerChange}
             required
             placeholder="Search or type"
           />
           <datalist id="team2p1List">
             {playersList.map((p) => (
-              <option key={p} value={p} />
+              <option key={p.id} value={p.name} />
             ))}
           </datalist>
         </div>
@@ -229,14 +236,14 @@ function MatchForm({ playersList, onAddMatch, matchType, onMatchTypeChange }) {
               name="team2p2"
               list="team2p2List"
               autoComplete="off"
-              value={matchPlayers.team2p2}
+              value={matchPlayers.team2p2?.name}
               onChange={handlePlayerChange}
               required
               placeholder="Search or type"
             />
             <datalist id="team2p2List">
               {playersList.map((p) => (
-                <option key={p} value={p} />
+                <option key={p.id} value={p.name} />
               ))}
             </datalist>
           </div>

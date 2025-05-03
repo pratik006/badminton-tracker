@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import styles from "./Header.module.css";
 
-function Header({ onLeaderboardClick, onMatchHistoryClick }) {
+function Header({ onLeaderboardClick, onMatchHistoryClick }: { onLeaderboardClick: () => void; onMatchHistoryClick: () => void }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Function to toggle the menu

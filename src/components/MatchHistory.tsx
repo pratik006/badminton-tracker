@@ -1,10 +1,11 @@
 import React from "react";
+import { Match } from "../types/types";
 
-function formatScores(scores) {
+function formatScores(scores: number[]) {
   return scores.map((s) => String(s).padStart(2, " ")).join("  ");
 }
 
-function MatchHistory({ matches }) {
+function MatchHistory({ matches }: { matches: Match[] }) {
   matches = matches.slice(0, 3)
   if (matches.length === 0) {
     return (
@@ -19,7 +20,7 @@ function MatchHistory({ matches }) {
       {matches.map((match) => (
         <div className="match-card" key={match.id}>
           <h3>
-            {match.team1.join(" / ")} vs {match.team2.join(" / ")}
+            {match.team1.map((p) => p.name).join(" / ")} vs {match.team2.map((p) => p.name).join(" / ")}
           </h3>
 
           <div style={{ color: "#aaa", fontSize: "0.85rem", marginBottom: "6px" }}>
@@ -27,18 +28,18 @@ function MatchHistory({ matches }) {
           </div>
 
           <div className="team-scores">
-            <div className="team-names">{match.team1.join(" / ")}</div>
+            <div className="team-names">{match.team1.map((p) => p.name).join(" / ")}</div>
             <div className="team-points">{formatScores(match.team1Scores)}</div>
           </div>
           <div className="team-scores">
-            <div className="team-names">{match.team2.join(" / ")}</div>
+            <div className="team-names">{match.team2.map((p) => p.name).join(" / ")}</div>
             <div className="team-points">{formatScores(match.team2Scores)}</div>
           </div>
 
           <div className="match-result">
             {match.winner === 0
               ? "Match ended in a tie or invalid scores"
-              : `Match won by ${match.winner === 1 ? match.team1.join(" / ") : match.team2.join(" / ")}`}
+              : `Match won by ${match.winner === 1 ? match.team1.map((p) => p.name).join(" / ") : match.team2.map((p) => p.name).join(" / ")}`}
           </div>
         </div>
       ))}

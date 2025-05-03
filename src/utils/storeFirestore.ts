@@ -1,6 +1,6 @@
-const { getAuth, signInWithEmailAndPassword } = require('firebase/auth');
-const { initializeApp } = require('firebase/app');
-const { getFirestore, collection, getDocs } = require('firebase/firestore');
+import { Match, Player } from '../types/types';
+import { initializeApp } from 'firebase/app';
+import { getFirestore, collection, getDocs, setDoc, doc } from 'firebase/firestore';
 
 const API_CONFIG = {
   apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
@@ -15,42 +15,30 @@ const API_CONFIG = {
 const app = initializeApp(API_CONFIG);
 const db = getFirestore(app);
 
-export { db };
-
 export const storeFirestore = (() => {
-    
-    //const app = initializeApp(firebaseConfig);
-    //const db = firebaseConfig.database();
   
     // Dummy local cache since no real Firestore here
-    let playersListCache = [];
-    let matchCache = [];
+    let playersListCache: Player[] = [];
+    let matchCache: Match[] = [];
   
     // Simulated fetch for players
     async function fetchPlayersList() {
-      
+        const querySnapshot = await getDocs(collection(db, '/players'));
+        const players: Player[] = querySnapshot.docs.map((doc: any) => ({ id: doc.id, name: doc.get('name') }));
+        if (playersListCache.length) return playersListCache;
 
-
-      // TODO: Replace this with real Firestore REST fetch
-      if (playersListCache.length) return playersListCache;
-  
-      // Simulate Firestore like response:
-      const players = [
-        'Nadith', 'Lahiru', 'Nuwan', 'Darshin',
-        'Peter', 'Daniel', 'Michael', 'John',
-        'Sarah', 'Anita', 'James', 'Kate',
-        'Tina', 'David', 'Chris', 'Emma',
-      ];
       playersListCache = players;
       return players;
     }
   
-    // Simulated save
-    async function saveMatch(matchRecord) {
-      // TODO: Replace this with Firestore POST REST
-      return new Promise(res => {
+    async function saveMatch(matchRecord: Match) {
+      return new Promise<Match>(res => {
         setTimeout(() => {
-          const saved = { id: 'fs-' + (matchCache.length + 1), ...matchRecord };
+          const collectionRef = collection(db, "/matches");
+          const docId = Math.random().toString(36).substring(2, 10);
+          const saved = { ...matchRecord, id: 'fs-' + (matchCache.length + 1) };
+          setDoc(doc(collectionRef, docId), saved);  
+          
           matchCache.push(saved);
           res(saved);
         }, 300);
@@ -59,8 +47,12 @@ export const storeFirestore = (() => {
   
     // Simulated fetch match history
     async function fetchMatchHistory() {
-      // TODO: Replace with Firestore GET REST
-      return new Promise(res => {
+      const querySnapshot = await getDocs(collection(db, '/matches'));
+        const matchList: Match[] = querySnapshot.docs.map((match: any) => ({ id: match.id, ...match.data() }));        
+        if(!matchCache || matchCache.length === 0)  
+          matchCache = matchCache.concat(matchList);
+
+      return new Promise<Match[]>(res => {
         setTimeout(() => {
           res([...matchCache].reverse());
         }, 300);

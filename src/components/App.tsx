@@ -4,23 +4,23 @@ import NavBar from "./NavBar";
 import MatchForm from "./MatchForm";
 import MatchHistory from "./MatchHistory";
 import Leaderboard from "./Leaderboard";
-//import * as store from "../utils/storeLocal"; // Using local store here
-import { storeFirestore } from "../utils/storeFirestore"; // Using firestore
-const store = storeFirestore;
+import * as store from "../utils/storeLocal"; // Using local store here
+//import { store } from "../utils/storeFirestore"; // Using firestore
+import { Match, MatchType, Player } from "../types/types";
 
 function App() {
-  const [playersList, setPlayersList] = useState([]);
-  const [matches, setMatches] = useState([]);
-  const [matchType, setMatchType] = useState("Doubles");
+  const [playersList, setPlayersList] = useState<Player[]>([]);
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [matchType, setMatchType] = useState<MatchType>("Doubles");
   const [buchholzEnabled, setBuchholzEnabled] = useState(true);
-  const leaderboardRef = useRef(null);
-  const matchHistoryRef = useRef(null);
+  const leaderboardRef = useRef<HTMLDivElement>(null);
+  const matchHistoryRef = useRef<HTMLDivElement>(null);
 
   // Load players and matches initially
   useEffect(() => {
     async function loadData() {
-      const players = await store.fetchPlayersList();
-      const matchesFetched = await store.fetchMatchHistory();
+      const players: Player[] = await store.fetchPlayersList();
+      const matchesFetched: Match[] = await store.fetchMatchHistory();
       setPlayersList(players);
       setMatches(matchesFetched);
     }
@@ -28,8 +28,8 @@ function App() {
   }, []);
 
   // Handle adding new match
-  async function handleAddMatch(match) {
-    const savedMatch = await store.saveMatch(match);
+  async function handleAddMatch(match: Match) {
+    const savedMatch = await store.saveMatch(match) as Match;
     setMatches((prev) => [savedMatch, ...prev]);
 
     // Update players list if needed

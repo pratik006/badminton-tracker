@@ -1,0 +1,162 @@
+[
+    {
+        "id": "fs-8",
+        "team1Scores": [
+            21
+        ],
+        "winner": 1,
+        "team2": [
+            {"id": "3", "name": "Surya"},
+            {"id": "8", "name": "Rinku"}
+        ],
+        "type": "Doubles",
+        "team1": [
+            {"id": "4", "name": "Shyam"},
+            {"id": "7", "name": "Vasu"}
+        ],
+        "team2Scores": [
+            9
+        ],
+        "matchDate": "2025-05-03"
+    },
+    {
+        "id": "fs-7",
+        "team1Scores": [
+            13
+        ],
+        "team1": [
+            {"id": "1","name": "Pratik"},
+            {"id": "6","name": "Sai"}
+        ],
+        "team2": [
+            {"id": "4", "name": "Shyam"},
+            {"id": "7", "name": "Vasu"}
+        ],
+        "winner": 2,
+        "type": "Doubles",
+        "matchDate": "2025-05-03",
+        "team2Scores": [
+            21
+        ]
+    },
+    {
+        "id": "fs-6",
+        "team2Scores": [
+            21
+        ],
+        "winner": 2,
+        "team1Scores": [
+            14
+        ],
+        "matchDate": "2025-05-03",
+        "team1": [
+            {"id": "1","name": "Pratik"},
+            {"id": "6", "name": "Sai"}
+        ],
+        "team2": [
+            {"id": "4", "name": "Shyam"},
+            {"id": "7", "name": "Vasu"}
+        ],
+        "type": "Doubles"
+    },
+    {
+        "id": "fs-1",
+        "matchDate": "2025-05-03",
+        "team1Scores": [
+            16
+        ],
+        "type": "Doubles",
+        "team2Scores": [
+            21
+        ],
+        "team1": [
+            {"id": "1","name": "Pratik"},
+            {"id": "6","name": "Sai"}
+        ],
+        "team2": [
+            {"id": "4", "name": "Shyam"},
+            {"id": "7", "name": "Vasu"}
+        ],
+        "winner": 2
+    },
+    {
+        "id": "fs-2",
+        "team2": [
+            {"id": "4", "name": "Shyam"},
+            {"id": "7", "name": "Vasu"}
+        ],
+        "matchDate": "2025-05-03",
+        "team1": [
+            {"id": "1","name": "Pratik"},
+            {"id": "6", "name": "Sai"}
+        ],
+        "winner": 1,
+        "type": "Doubles",
+        "team1Scores": [
+            21
+        ],
+        "team2Scores": [
+            7
+        ]
+    },
+    {
+        "id": "fs-9",
+        "type": "Doubles",
+        "team2Scores": [
+            17
+        ],
+        "team1Scores": [
+            21
+        ],
+        "team1": [
+            {"id": "4", "name": "Shyam"},
+            {"id": "7", "name": "Vasu"}
+        ],
+        "winner": 1,
+        "team2": [
+            {"id": "3", "name": "Surya"},
+            {"id": "8", "name": "Rinku"}
+        ],
+        "matchDate": "2025-05-03"
+    },
+    {
+        "id": "fs-10",
+        "team2": [
+            {"id": "3", "name": "Surya"},
+            {"id": "8", "name": "Rinku"}
+        ],
+        "team1Scores": [
+            21
+        ],
+        "type": "Doubles",
+        "team2Scores": [
+            16
+        ],
+        "team1": [
+            {"id": "1","name": "Pratik"},
+            {"id": "7", "name": "Vasu"}
+        ],
+        "winner": 1,
+        "matchDate": "2025-05-03"
+    },
+    {
+        "id": "fs-11",
+        "winner": 2,
+        "team1Scores": [
+            19
+        ],
+        "matchDate": "2025-05-03",
+        "team2": [
+            {"id": "3", "name": "Surya"},
+            {"id": "8", "name": "Rinku"}
+        ],
+        "type": "Doubles",
+        "team1": [
+            {"id": "1","name": "Pratik"},
+            {"id": "6", "name": "Sai"}
+        ],
+        "team2Scores": [
+            21
+        ]
+    }
+]

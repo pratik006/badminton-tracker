@@ -1,25 +1,26 @@
 import React, { useState, useEffect } from "react";
 import { calculateLeaderboard, LEADERBOARD_CONFIG } from "../utils/leaderboardUtils";
+import { Match, PlayerStat } from "../types/types";
 
-function Leaderboard({ matches, buchholzEnabled }) {
+function Leaderboard({ matches, buchholzEnabled }: { matches: Match[]; buchholzEnabled: boolean }) {
   const [timeframe, setTimeframe] = useState("monthly");
-  const [filteredMatches, setFilteredMatches] = useState([]);
-  const [sortedPlayers, setSortedPlayers] = useState([]);
+  const [filteredMatches, setFilteredMatches] = useState<Match[]>([]);
+  const [sortedPlayers, setSortedPlayers] = useState<PlayerStat[]>([]);
 
   // Filter matches by timeframe
   useEffect(() => {
     const now = new Date();
 
     // Helper to get ISO week number
-    function getWeekNumber(date) {
+    function getWeekNumber(date: Date) {
       const tempDate = new Date(date.getFullYear(), 0, 1);
       const dayNum = (date.getDay() + 6) % 7;
       tempDate.setDate(tempDate.getDate() + 4 - ((tempDate.getDay() + 6) % 7));
-      const weekNum = Math.floor(1 + (date - tempDate) / (7 * 24 * 3600 * 1000));
+      const weekNum = Math.floor(1 + (date.getTime() - tempDate.getTime()) / (7 * 24 * 3600 * 1000));
       return weekNum;
     }
 
-    const filtered = matches.filter((match) => {
+    const filtered: Match[] = matches.filter((match) => {
       if (!match.matchDate) return false;
       const matchDate = new Date(match.matchDate);
       if (timeframe === "overall") {
@@ -44,7 +45,7 @@ function Leaderboard({ matches, buchholzEnabled }) {
 
   // Calculate leaderboard players sorted on filtered matches
   useEffect(() => {
-    const leaderboard = calculateLeaderboard(filteredMatches, LEADERBOARD_CONFIG, buchholzEnabled);
+    const leaderboard: PlayerStat[] = calculateLeaderboard(filteredMatches, LEADERBOARD_CONFIG, buchholzEnabled).map((player) => ({ ...player, id: player.player.id }));
     setSortedPlayers(leaderboard);
   }, [filteredMatches, buchholzEnabled]);
 
@@ -80,7 +81,7 @@ function Leaderboard({ matches, buchholzEnabled }) {
           Leaderboard showing player names, points, Buchholz score, matches played, won and win percentage
         </caption>
         <thead>
-          <tr>
+          <tr key="leaderboard-header">
             <th>Player</th>
             <th title="Adjusted points with Buchholz weighting">Points</th>
             <th>Buchholz</th>
@@ -92,7 +93,7 @@ function Leaderboard({ matches, buchholzEnabled }) {
         <tbody>
           {sortedPlayers.length === 0 ? (
             <tr>
-              <td colSpan="6" style={{ textAlign: "center", padding: "12px" }}>
+              <td colSpan={6} style={{ textAlign: "center", padding: "12px" }}>
                 No matches for selected timeframe.
               </td>
             </tr>
@@ -101,8 +102,8 @@ function Leaderboard({ matches, buchholzEnabled }) {
               const winPct =
                 player.played === 0 ? 0 : ((player.won / player.played) * 100).toFixed(1);
               return (
-                <tr key={player.name}>
-                  <td>{player.name}</td>
+                <tr key={player.player.id}>
+                  <td>{player.player.name}</td>
                   <td>{player.points.toFixed(1)}</td>
                   <td>{player.opponentPointsSum.toFixed(1)}</td>
                   <td>{player.played}</td>

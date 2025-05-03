@@ -6,7 +6,6 @@ function formatScores(scores: number[]) {
 }
 
 function MatchHistory({ matches }: { matches: Match[] }) {
-  matches = matches.slice(0, 3)
   if (matches.length === 0) {
     return (
       <div style={{ color: "var(--color-text-muted)", textAlign: "center", padding: "16px" }}>

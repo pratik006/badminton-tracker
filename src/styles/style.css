@@ -211,11 +211,13 @@
     cursor: not-allowed;
     transform: none;
   }
-  
+
   .match-history-list {
     display: flex;
     flex-direction: column;
     gap: 14px;
+    max-height: 550px;
+    overflow-y: auto;
   }
   
   .match-card {

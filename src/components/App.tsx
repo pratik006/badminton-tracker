@@ -21,7 +21,21 @@ function App() {
     async function loadData() {
       const players: Player[] = await store.fetchPlayersList();
       const matchesFetched: Match[] = await store.fetchMatchHistory();
-      setPlayersList(players);
+
+      // Build recentPlayers: most recent first, no duplicates
+      const recentPlayers: Player[] = [];
+      const seen = new Set<string>();
+      for (const match of matchesFetched) {
+        for (const player of [...match.team1, ...match.team2]) {
+          const key = String(player.id ?? player.name);
+          if (!seen.has(key)) {
+            recentPlayers.push(player);
+            seen.add(key);
+          }
+        }
+      }
+
+      setPlayersList(recentPlayers);
       setMatches(matchesFetched);
     }
     loadData();

@@ -48,6 +48,43 @@ function MatchForm({ playersList, onAddMatch, matchType, onMatchTypeChange }:
     }
   };
 
+  const updateOtherScore = (index: number, team: string, value: string) => {
+    if (team === "team2") {
+      // User is entering score for team 2
+      if (parseInt(value) < 20) {
+        // Set team 1's score to 21
+        setScores(prev => {
+          const copy = [...prev];
+          copy[index]["team1"] = "21";
+          return copy;
+        });
+      } else {
+        // Set team 1's score to value + 2
+        setScores(prev => {
+          const copy = [...prev];
+          copy[index]["team1"] = String(parseInt(value) + 2);
+          return copy;
+        });
+      }
+    } else if (team === "team1") {
+      if (parseInt(value) < 20) {
+        // Set team 2's score to 21
+        setScores(prev => {
+          const copy = [...prev];
+          copy[index]["team2"] = "21";
+          return copy;
+        });
+      } else {
+        // Set team 2's score to value + 2
+        setScores(prev => {
+          const copy = [...prev];
+          copy[index]["team2"] = String(parseInt(value) + 2);
+          return copy;
+        });
+      }
+    }
+  };
+
   const addSet = () => {
     if (scores.length < MAX_SETS) {
       setScores((prev) => [...prev, { team1: "", team2: "" }]);
@@ -275,6 +312,7 @@ function MatchForm({ playersList, onAddMatch, matchType, onMatchTypeChange }:
                 max="30"
                 value={setScore.team1}
                 onChange={(e) => handleScoreChange(i, "team1", e.target.value)}
+                onBlur={(e) => updateOtherScore(i, "team1", e.target.value)}
                 required
                 placeholder="0"
               />
@@ -289,6 +327,7 @@ function MatchForm({ playersList, onAddMatch, matchType, onMatchTypeChange }:
                 max="30"
                 value={setScore.team2}
                 onChange={(e) => handleScoreChange(i, "team2", e.target.value)}
+                onBlur={(e) => updateOtherScore(i, "team2", e.target.value)}
                 required
                 placeholder="0"
               />

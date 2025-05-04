@@ -49,6 +49,19 @@ function MatchForm({ playersList, onAddMatch, matchType, onMatchTypeChange }:
   };
 
   const updateOtherScore = (index: number, team: string, value: string) => {
+    // Early exit if both fields are already numeric
+    const currentSet = scores[index];
+    if (
+      currentSet &&
+      !isNaN(Number(currentSet.team1)) &&
+      currentSet.team1 !== "" &&
+      !isNaN(Number(currentSet.team2)) &&
+      currentSet.team2 !== ""
+    ) {
+      return;
+    }
+
+
     if (team === "team2") {
       // User is entering score for team 2
       if (parseInt(value) < 20) {

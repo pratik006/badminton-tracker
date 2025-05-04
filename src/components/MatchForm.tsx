@@ -33,7 +33,8 @@ function MatchForm({ playersList, onAddMatch, matchType, onMatchTypeChange }:
 
   const handlePlayerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setMatchPlayers((prev) => ({ ...prev, [name]: value }));
+    const player = playersList.find((p) => p.name === value);
+    setMatchPlayers((prev) => ({ ...prev, [name]: player }));
 };
 
   const handleScoreChange = (index: number, team: string, value: string) => {

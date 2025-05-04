@@ -24,8 +24,7 @@ function MatchForm({ playersList, onAddMatch, matchType, onMatchTypeChange, matc
 
   useEffect(() => {
     const today = new Date();
-    const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
-    const todayStr = yesterday.toISOString().slice(0, 10);
+    const todayStr = today.toISOString().slice(0, 10);
     const matchToday = matches.find(
       (m) => m.matchDate && m.matchDate.slice(0, 10) === todayStr
     );

@@ -7,8 +7,12 @@ import Leaderboard from "./Leaderboard";
 //import * as store from "../utils/storeLocal"; // Using local store here
 import { storeFirestore as store } from "../utils/storeFirestore"; // Using firestore
 import { Match, MatchType, Player } from "../types/types";
+import SignIn from "./SignIn";
+import { signInUser } from "../utils/storeFirestore";
+import { getAuth, onAuthStateChanged, signOut, User } from "firebase/auth";
 
 function App() {
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [playersList, setPlayersList] = useState<Player[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [matchType, setMatchType] = useState<MatchType>("Doubles");
@@ -18,6 +22,10 @@ function App() {
 
   // Load players and matches initially
   useEffect(() => {
+    const auth = getAuth();
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+    });
     async function loadData() {
       const players: Player[] = await store.fetchPlayersList();
       const matchesFetched: Match[] = await store.fetchMatchHistory();
@@ -39,7 +47,29 @@ function App() {
       setMatches(matchesFetched);
     }
     loadData();
-  }, []);
+    return () => unsubscribe();
+  }, [currentUser]);
+
+  const handleSignIn = async (username: string, password: string) => {
+    try {
+      await signInUser(username, password); // username is email
+    } catch (error: any) {
+      alert(error.message || "Failed to sign in");
+    }
+  };
+  const handleSignOut = async () => {
+    const auth = getAuth();
+    try {
+      await signOut(auth);
+      // No need to manually update currentUser; onAuthStateChanged will handle it
+    } catch (error: any) {
+      alert(error.message || "Failed to sign out");
+    }
+  };
+
+    if (!currentUser) {
+      return <SignIn onSignIn={handleSignIn} />;
+    }
 
   // Handle adding new match
   async function handleAddMatch(match: Match) {
@@ -70,7 +100,7 @@ function App() {
 
   return (
     <>
-      <Header onLeaderboardClick={scrollToLeaderboard} onMatchHistoryClick={scrollToMatchHistory} />
+      <Header onLeaderboardClick={scrollToLeaderboard} onMatchHistoryClick={scrollToMatchHistory} onSignOutClick={handleSignOut} />
       {/* <NavBar onLeaderboardClick={scrollToLeaderboard} /> */}
 
       <main>

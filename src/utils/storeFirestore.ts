@@ -1,6 +1,7 @@
 import { Match, MatchFirestore, Player } from '../types/types';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, getDocs, setDoc, doc } from 'firebase/firestore';
+import { getAuth, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 
 const API_CONFIG = {
   apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
@@ -14,6 +15,17 @@ const API_CONFIG = {
 
 const app = initializeApp(API_CONFIG);
 const db = getFirestore(app);
+
+export async function signInUser(email: string, password: string): Promise<void> {
+  const auth = getAuth();
+  await signInWithEmailAndPassword(auth, email, password);
+}
+
+export async function signInWithGoogle(): Promise<void> {
+  const auth = getAuth();
+  const provider = new GoogleAuthProvider();
+  await signInWithPopup(auth, provider);
+}
 
 export const storeFirestore = (() => {
   

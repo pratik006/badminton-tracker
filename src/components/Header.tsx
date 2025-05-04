@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import styles from "./Header.module.css";
 
-function Header({ onLeaderboardClick, onMatchHistoryClick }: { onLeaderboardClick: () => void; onMatchHistoryClick: () => void }) {
+function Header({ onLeaderboardClick, onMatchHistoryClick, onSignOutClick }: { onLeaderboardClick: () => void; onMatchHistoryClick: () => void; onSignOutClick: () => void }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Function to toggle the menu
@@ -31,6 +31,7 @@ function Header({ onLeaderboardClick, onMatchHistoryClick }: { onLeaderboardClic
         <div className={`${styles.mobile_menu} ${isMenuOpen ? styles.mobile_menu_active : ""}`}>
           <button className={`${styles.nav_links_button}`} onClick={() => {onLeaderboardClick(); setIsMenuOpen(!isMenuOpen);}} >Leaderboard</button>
           <button className={`${styles.nav_links_button}`} onClick={() => {onMatchHistoryClick(); setIsMenuOpen(!isMenuOpen);}} >Match history</button>
+          <button className={`${styles.nav_links_button}`} onClick={() => {onSignOutClick(); setIsMenuOpen(!isMenuOpen);}} >Sign out</button>
         </div>
       </div>
     </header>

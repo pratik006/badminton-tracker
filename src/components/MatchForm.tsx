@@ -3,12 +3,14 @@ import { Match, MatchPlayer, Player, MatchType } from "../types/types";
 
 const MAX_SETS = 3;
 
-function MatchForm({ playersList, onAddMatch, matchType, onMatchTypeChange }: 
+function MatchForm({ playersList, onAddMatch, matchType, onMatchTypeChange, matches }: 
       { playersList: Player[]; 
         onAddMatch: (match: Match) => Promise<void>; 
         matchType: MatchType; 
         onMatchTypeChange: (type: MatchType) => void 
+        matches: Match[];
       }) {
+  const [isPrefilled, setIsPrefilled] = useState(false);
   // Local form states
   const [matchPlayers, setMatchPlayers] = useState<MatchPlayer>({
     team1p1: null,
@@ -21,6 +23,13 @@ function MatchForm({ playersList, onAddMatch, matchType, onMatchTypeChange }:
   const [adding, setAdding] = useState(false);
 
   useEffect(() => {
+    const today = new Date();
+    const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+    const todayStr = yesterday.toISOString().slice(0, 10);
+    const matchToday = matches.find(
+      (m) => m.matchDate && m.matchDate.slice(0, 10) === todayStr
+    );
+    
     // Reset players & scores on match type change
     if (matchType === "Singles") {
       setMatchPlayers({ team1p1: null, team1p2: null, team2p1: null, team2p2: null });
@@ -29,12 +38,27 @@ function MatchForm({ playersList, onAddMatch, matchType, onMatchTypeChange }:
       setMatchPlayers({ team1p1: null, team1p2: null, team2p1: null, team2p2: null });
       setScores([{ team1: "", team2: "" }]);
     }
-  }, [matchType]);
+
+    if (matchToday) {
+      // Prefill form fields with matchToday data
+      setMatchPlayers({
+        team1p1: matchToday.team1[0],
+        team1p2: matchToday.team1[1] || "",
+        team2p1: matchToday.team2[0],
+        team2p2: matchToday.team2[1] || "",
+      });
+      setIsPrefilled(true);
+    } else {
+      setIsPrefilled(false);
+      // Optionally clear form fields here
+    }
+  }, [matchType, matches]);
 
   const handlePlayerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     const player = playersList.find((p) => p.name === value);
     setMatchPlayers((prev) => ({ ...prev, [name]: player }));
+    setIsPrefilled(false);
 };
 
   const handleScoreChange = (index: number, team: string, value: string) => {
@@ -224,10 +248,11 @@ function MatchForm({ playersList, onAddMatch, matchType, onMatchTypeChange }:
             name="team1p1"
             list="team1p1List"
             autoComplete="off"
-            value={matchPlayers.team1p1?.name}
+            value={matchPlayers.team1p1?.name || ""}
             onChange={handlePlayerChange}
             required
             placeholder="Search or type"
+            style={isPrefilled ? { color: "var(--color-text-muted)" } : {}}
           />
           <datalist id="team1p1List">
             {playersList.map((p) => (
@@ -245,10 +270,11 @@ function MatchForm({ playersList, onAddMatch, matchType, onMatchTypeChange }:
               name="team1p2"
               list="team1p2List"
               autoComplete="off"
-              value={matchPlayers.team1p2?.name}
+              value={matchPlayers.team1p2?.name || ""}
               onChange={handlePlayerChange}
               required
               placeholder="Search or type"
+              style={isPrefilled ? { color: "var(--color-text-muted)" } : {}}
             />
             <datalist id="team1p2List">
               {playersList.map((p) => (
@@ -266,10 +292,11 @@ function MatchForm({ playersList, onAddMatch, matchType, onMatchTypeChange }:
             name="team2p1"
             list="team2p1List"
             autoComplete="off"
-            value={matchPlayers.team2p1?.name}
+            value={matchPlayers.team2p1?.name || ""}
             onChange={handlePlayerChange}
             required
             placeholder="Search or type"
+            style={isPrefilled ? { color: "var(--color-text-muted)" } : {}}
           />
           <datalist id="team2p1List">
             {playersList.map((p) => (
@@ -287,11 +314,12 @@ function MatchForm({ playersList, onAddMatch, matchType, onMatchTypeChange }:
               name="team2p2"
               list="team2p2List"
               autoComplete="off"
-              value={matchPlayers.team2p2?.name}
+              value={matchPlayers.team2p2?.name || ""}
               onChange={handlePlayerChange}
               required
               placeholder="Search or type"
-            />
+              style={isPrefilled ? { color: "var(--color-text-muted)" } : {}}
+              />
             <datalist id="team2p2List">
               {playersList.map((p) => (
                 <option key={p.id} value={p.name} />

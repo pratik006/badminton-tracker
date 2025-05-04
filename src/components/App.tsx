@@ -81,6 +81,7 @@ function App() {
             onAddMatch={handleAddMatch}
             matchType={matchType}
             onMatchTypeChange={setMatchType}
+            matches={matches}
           />
         </section>
 

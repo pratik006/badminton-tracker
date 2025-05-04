@@ -51,8 +51,8 @@ export const storeFirestore = (() => {
       return new Promise<Match>(res => {
         setTimeout(() => {
           const collectionRef = collection(db, "/matches");
-          const docId = Math.random().toString(36).substring(2, 10);
-          const saved = { ...matchRecord, id: 'fs-' + (matchCache.length + 1) };
+          const docId = 'fs-' + (matchCache.length + 1);
+          const saved = { ...matchRecord, id: docId };
           setDoc(doc(collectionRef, docId), saved);  
           
           matchCache.push(saved);

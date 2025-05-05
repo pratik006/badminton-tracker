@@ -42,6 +42,14 @@ function App() {
           }
         }
       }
+      
+      for (const player of players) {
+        const key = String(player.id ?? player.name);
+        if (!seen.has(key)) {
+          recentPlayers.push(player);
+          seen.add(key);
+        }
+      }
 
       setPlayersList(recentPlayers);
       setMatches(matchesFetched);

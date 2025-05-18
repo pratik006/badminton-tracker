@@ -11,6 +11,7 @@ import SignIn from "./SignIn";
 import { signInUser } from "../components/firestore/storeFirestore";
 import { getAuth, onAuthStateChanged, signOut, User } from "firebase/auth";
 import { FilterOption } from "../utils/DateFunctions";
+import Profile from "./Profile";
 
 function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -21,6 +22,7 @@ function App() {
   const [historyFilter, setHistoryFilter] = useState<FilterOption>('last7days');
   const leaderboardRef = useRef<HTMLDivElement>(null);
   const matchHistoryRef = useRef<HTMLDivElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
 
   // Load players and matches initially
   useEffect(() => {
@@ -106,9 +108,18 @@ function App() {
     }
   };
 
+  // Scroll Profile into view on nav button click
+  const handleProfileClick = () => {
+    
+   // show profile page
+   if (profileRef.current) {
+    profileRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
   return (
     <>
-      <Header onLeaderboardClick={scrollToLeaderboard} onMatchHistoryClick={scrollToMatchHistory} onSignOutClick={handleSignOut} />
+      <Header onLeaderboardClick={scrollToLeaderboard} onMatchHistoryClick={scrollToMatchHistory} onSignOutClick={handleSignOut} onProfileClick={handleProfileClick} />
       {/* <NavBar onLeaderboardClick={scrollToLeaderboard} /> */}
 
       <main>
@@ -144,6 +155,10 @@ function App() {
           </label>
 
           <Leaderboard matches={matches} buchholzEnabled={buchholzEnabled} />
+        </section>
+
+        <section ref={profileRef}>
+          <Profile />
         </section>
       </main>
     </>

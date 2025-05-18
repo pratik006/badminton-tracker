@@ -30,6 +30,8 @@ export type Player = {
     id: string | number;
     name: string;
     email: string | null;
+    avatar?: string;
+    groups?: Group[];
   };
   
   export type Players = Player[];
@@ -60,6 +62,14 @@ export type Activity = {
     oldValue: string;
     newValue: string;
 };
+
+export type Group = {
+    id: string | number;
+    name: string;
+    registeredPlayers?: Player[];
+};
+
+export type Groups = Group[];
 
 export type ActivityType = "SaveMatch" | "PlayerStat" | "LogIn" | "LogOut";
 

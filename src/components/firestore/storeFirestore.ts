@@ -1,6 +1,6 @@
-import { Activity, ActivityType, Match, MatchFirestore, Player } from '../../types/types';
+import { Activity, ActivityType, Group, Match, MatchFirestore, Player } from '../../types/types';
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, getDocs, setDoc, doc } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, setDoc, doc, query, where, getDoc } from 'firebase/firestore';
 import { getAuth, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { FilterOption, formatDate, getPredicate } from '../../utils/DateFunctions';
 
@@ -65,19 +65,44 @@ export const storeFirestore = (() => {
     // Dummy local cache since no real Firestore here
     const playersListCache: Player[] = [];
     let matchCache: Match[] = [];
+    let groupsCache: Group[] = [];
   
     // Simulated fetch for players
     async function fetchPlayersList() {
       if (playersListCache.length) return playersListCache;
 
       const querySnapshot = await getDocs(collection(db, '/players'));
-      const players: Player[] = querySnapshot.docs.map((doc: any) => ({ id: doc.id, name: doc.get('name'), email: doc.get('email') }));
+      const players: Player[] = querySnapshot.docs.map((doc: any) => ({ id: doc.id, name: doc.get('name'), email: doc.get('email'), avatar: doc.get('avatar') }));
       
       // race condition check
       if (playersListCache.length) return playersListCache;
       
       playersListCache.concat(players);
       return players;
+    }
+
+    async function getPlayerInfo(): Promise<Player|undefined> {
+      const user = getAuth().currentUser;
+      if (!user) return;
+
+      const players = await fetchPlayersList();
+      const player: Player|undefined = players.find((player: Player) => player.email === user.email);
+      if (!player) return;
+
+      player.groups = [];
+      const groupPlayersRef = collection(db, '/group_registered_players');
+      const q = query(groupPlayersRef, where('playerId', '==', Number(player.id)));
+      const querySnapshot = await getDocs(q);
+
+      const groups = await getGroups();
+
+      querySnapshot.forEach((doc: any) => {
+        const groupId = doc.get('groupId');
+        const group = groups.find((g: Group) => g.id === groupId);
+        if (group) player.groups!.push(group);
+      });
+
+      return player;
     }
   
     async function saveMatch(matchRecord: Match) {
@@ -130,12 +155,43 @@ export const storeFirestore = (() => {
         res({ players, matches: matchCache });
       });
     }
+
+    async function fetchPlayersByGroup(groupId: number) {
+      const queryRef = collection(db, '/groups');
+      const groupQuery = query(queryRef, where('id', '==', groupId));
+      const groupName = (await getDocs(groupQuery)).docs[0].data()?.name;
+
+      const allPlayers = await fetchPlayersList();
+      const groupPlayersRef = collection(db, '/group_registered_players');
+      const q = query(groupPlayersRef, where('groupId', '==', groupId));
+      const queryRegisteredPlayers: Player[] = (await getDocs(q)).docs.map((doc: any) => {
+        const player = allPlayers.find((player: Player) => player.id === doc.get('playerId'));
+        return { ...player!, id: doc.get('playerId') };
+      });
+      const group: Group = {
+        id: 1,
+        name: groupName,
+        registeredPlayers: queryRegisteredPlayers
+      };
+
+      return group;
+    }
+
+    async function getGroups() {
+      if (groupsCache.length) return groupsCache;
+      const querySnapshot = await getDocs(collection(db, '/groups'));
+      const groups: Group[] = querySnapshot.docs.map((doc: any) => ({ id: Number(doc.get('id')), name: doc.get('name') }));
+      groupsCache = groups;
+      return groups;
+    }
   
     return {
       fetchPlayersList,
       saveMatch,
       fetchMatchHistory,
       fetchLeaderboardData: fetchLeaderboard,
-      auditActivity
+      fetchPlayersByGroup,
+      auditActivity,
+      getPlayerInfo
     };
   })();

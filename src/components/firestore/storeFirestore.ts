@@ -1,7 +1,8 @@
-import { Match, MatchFirestore, Player } from '../types/types';
+import { Activity, ActivityType, Match, MatchFirestore, Player } from '../../types/types';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, getDocs, setDoc, doc } from 'firebase/firestore';
 import { getAuth, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { FilterOption, formatDate, getPredicate } from '../../utils/DateFunctions';
 
 const API_CONFIG = {
   apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
@@ -19,12 +20,44 @@ const db = getFirestore(app);
 export async function signInUser(email: string, password: string): Promise<void> {
   const auth = getAuth();
   await signInWithEmailAndPassword(auth, email, password);
+
+  await auditActivity('LogIn');
+}
+
+export const timestamp = formatDate(new Date());
+
+async function 
+auditActivity(type: ActivityType, newValue: string = '', oldValue: string = '') {
+  const user = getAuth().currentUser;
+  if (!user) return;
+
+  const activity: Activity = {
+    id: (await storeFirestore.fetchPlayersList()).find((player: Player) => player.email === user.email)?.id,
+    type: type,
+    createdTs: timestamp,
+    createdBy: user.email!,
+    oldValue: oldValue,
+    newValue: newValue
+  };
+  return new Promise<Activity>(res => {
+    setTimeout(() => {
+      const collectionRef = collection(db, "/audits");
+      const saved = { ...activity };
+      setDoc(doc(collectionRef), saved);  
+      
+      res(saved);
+    }, 300);
+  });
 }
 
 export async function signInWithGoogle(): Promise<void> {
   const auth = getAuth();
   const provider = new GoogleAuthProvider();
   await signInWithPopup(auth, provider);
+  const user = auth.currentUser;
+  if (user) {
+    await auditActivity('LogIn');
+  }
 }
 
 export const storeFirestore = (() => {
@@ -38,7 +71,7 @@ export const storeFirestore = (() => {
       if (playersListCache.length) return playersListCache;
 
       const querySnapshot = await getDocs(collection(db, '/players'));
-      const players: Player[] = querySnapshot.docs.map((doc: any) => ({ id: doc.id, name: doc.get('name') }));
+      const players: Player[] = querySnapshot.docs.map((doc: any) => ({ id: doc.id, name: doc.get('name'), email: doc.get('email') }));
       
       // race condition check
       if (playersListCache.length) return playersListCache;
@@ -52,30 +85,39 @@ export const storeFirestore = (() => {
         setTimeout(() => {
           const collectionRef = collection(db, "/matches");
           const docId = 'fs-' + (matchCache.length + 1);
-          const saved = { ...matchRecord, id: docId };
+          const saved = { ...matchRecord, id: docId, createdTs: timestamp, createdBy: getAuth().currentUser?.email! };
           setDoc(doc(collectionRef, docId), saved);  
           
           matchCache.push(saved);
           res(saved);
+
+          auditActivity('SaveMatch', JSON.stringify(saved));
         }, 300);
       });
     }
   
     // Simulated fetch match history
-    async function fetchMatchHistory() {
+    async function fetchMatchHistory(filter: FilterOption = 'last7days') {
       const playersCache = await fetchPlayersList();
-      const querySnapshot = await getDocs(collection(db, '/matches'));
-      const matchList: Match[] = querySnapshot.docs.map((match: any) => ({ id: match.id, ...match.data() }))
-          .map((match: any) => ({ ...match, 
+      if (!matchCache.length) {
+        const querySnapshot = await getDocs(collection(db, '/matches'));
+        const matchList: Match[] = querySnapshot.docs.map((match: any) => ({ id: match.id, ...match.data() }))
+            .map((match: any) => ({ ...match, 
             team1: match.team1.map((p: any) => ({ id: p.id, name: playersCache.find((player: Player) => player.id === p.id)?.name })), 
             team2: match.team2.map((p: any) => ({ id: p.id, name: playersCache.find((player: Player) => player.id === p.id)?.name })) 
           }));
-      if(!matchCache || matchCache.length === 0)  
-        matchCache = matchCache.concat(matchList);
+
+        matchCache = matchList;
+      }
+
+      const filterPredicate = await getPredicate(filter);
+
+      // Filter matches based on date
+      const filteredMatches = matchCache.filter(filterPredicate);
 
       return new Promise<Match[]>(res => {
         setTimeout(() => {
-          res([...matchCache].reverse());
+          res([...filteredMatches].reverse());
         }, 300);
       });
     }
@@ -94,5 +136,6 @@ export const storeFirestore = (() => {
       saveMatch,
       fetchMatchHistory,
       fetchLeaderboardData: fetchLeaderboard,
+      auditActivity
     };
   })();

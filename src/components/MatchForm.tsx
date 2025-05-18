@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Match, MatchPlayer, Player, MatchType } from "../types/types";
+import { getAuth } from "firebase/auth";
+import { timestamp } from "./firestore/storeFirestore";
 
 const MAX_SETS = 3;
 
@@ -200,6 +202,8 @@ function MatchForm({ playersList, onAddMatch, matchType, onMatchTypeChange, matc
       team2Scores,
       winner,
       matchDate: date,
+      createdTs: timestamp,
+      createdBy: getAuth().currentUser?.email!
     };
 
     await onAddMatch(newMatch as Match);

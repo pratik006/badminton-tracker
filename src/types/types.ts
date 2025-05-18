@@ -7,6 +7,8 @@ export type Match = {
     matchDate?: string | null;
     team1Scores: number[];
     team2Scores: number[];
+    createdTs: string;
+    createdBy: string;
     winner: number; // 0 = tie/invalid, 1 = team1, 2 = team2
   };
 
@@ -18,6 +20,8 @@ export type Match = {
     team1Scores: number[];
     team2Scores: number[];
     winner: number; // 0 = tie/invalid, 1 = team1, 2 = team2
+    createdTs: number;
+    createdBy: string;
   };  
   
 export type Matches = Match[];
@@ -25,6 +29,7 @@ export type Matches = Match[];
 export type Player = {
     id: string | number;
     name: string;
+    email: string | null;
   };
   
   export type Players = Player[];
@@ -46,4 +51,15 @@ export type PlayerStat = {
     opponents: Set<Player>;
     opponentPointsSum: number;
 };
+
+export type Activity = {
+    id: string | number | undefined | null;
+    type: ActivityType;
+    createdTs: string;
+    createdBy: string;
+    oldValue: string;
+    newValue: string;
+};
+
+export type ActivityType = "SaveMatch" | "PlayerStat" | "LogIn" | "LogOut";
 

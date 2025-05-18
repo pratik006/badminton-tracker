@@ -5,11 +5,12 @@ import MatchForm from "./MatchForm";
 import MatchHistory from "./MatchHistory";
 import Leaderboard from "./Leaderboard";
 //import * as store from "../utils/storeLocal"; // Using local store here
-import { storeFirestore as store } from "../utils/storeFirestore"; // Using firestore
+import { storeFirestore as store } from "../components/firestore/storeFirestore"; // Using firestore
 import { Match, MatchType, Player } from "../types/types";
 import SignIn from "./SignIn";
-import { signInUser } from "../utils/storeFirestore";
+import { signInUser } from "../components/firestore/storeFirestore";
 import { getAuth, onAuthStateChanged, signOut, User } from "firebase/auth";
+import { FilterOption } from "../utils/DateFunctions";
 
 function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -17,6 +18,7 @@ function App() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [matchType, setMatchType] = useState<MatchType>("Doubles");
   const [buchholzEnabled, setBuchholzEnabled] = useState(false);
+  const [historyFilter, setHistoryFilter] = useState<FilterOption>('last7days');
   const leaderboardRef = useRef<HTMLDivElement>(null);
   const matchHistoryRef = useRef<HTMLDivElement>(null);
 
@@ -28,8 +30,8 @@ function App() {
     });
     async function loadData() {
       const players: Player[] = await store.fetchPlayersList();
-      const matchesFetched: Match[] = await store.fetchMatchHistory();
-
+      const matchesFetched: Match[] = await store.fetchMatchHistory(historyFilter);
+      
       // Build recentPlayers: most recent first, no duplicates
       const recentPlayers: Player[] = [];
       const seen = new Set<string>();
@@ -56,7 +58,7 @@ function App() {
     }
     loadData();
     return () => unsubscribe();
-  }, [currentUser]);
+  }, [currentUser, historyFilter]);
 
   const handleSignIn = async (username: string, password: string) => {
     try {
@@ -75,9 +77,9 @@ function App() {
     }
   };
 
-    if (!currentUser) {
-      return <SignIn onSignIn={handleSignIn} />;
-    }
+  if (!currentUser) {
+    return <SignIn onSignIn={handleSignIn} />;
+  }
 
   // Handle adding new match
   async function handleAddMatch(match: Match) {
@@ -93,8 +95,6 @@ function App() {
   // Scroll leaderboard into view on nav button click
   const scrollToLeaderboard = () => {
     if (leaderboardRef.current) {
-      //const yOffset = -10;
-      //const y = leaderboardRef.current.getBoundingClientRect().top + window.scrollY + yOffset;
       leaderboardRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
@@ -125,7 +125,10 @@ function App() {
 
         <section ref={matchHistoryRef}>
           <h2>Match History</h2>
-          <MatchHistory matches={matches} />
+          <MatchHistory 
+            matches={matches} 
+            onFilterChange={(filter: FilterOption) => setHistoryFilter(filter)}
+          />
         </section>
 
         <section ref={leaderboardRef}>

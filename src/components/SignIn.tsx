@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import "./SignIn.css";
-import { signInWithGoogle } from "../utils/storeFirestore";
+import { signInWithGoogle } from "./firestore/storeFirestore";
 
 function SignIn({ onSignIn }: { onSignIn: (username: string, password: string) => void }) {
   const [username, setUsername] = useState("");

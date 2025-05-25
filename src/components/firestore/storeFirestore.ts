@@ -2,6 +2,7 @@ import { Activity, ActivityType, Group, Match, MatchFirestore, Player } from '..
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, getDocs, setDoc, doc, query, where, getDoc } from 'firebase/firestore';
 import { getAuth, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
 import { FilterOption, formatDate, getPredicate } from '../../utils/DateFunctions';
 
 const API_CONFIG = {
@@ -15,10 +16,20 @@ const API_CONFIG = {
 };
 
 const app = initializeApp(API_CONFIG);
+
+// Initialize App Check only in production
+let appCheck;
+if (process.env.NODE_ENV === 'production') {
+  appCheck = initializeAppCheck(app, {
+    provider: new ReCaptchaV3Provider('6LdlUkgrAAAAAABiu9_SrpMgoUZxu6EdOyHU5Ryn'),
+    isTokenAutoRefreshEnabled: true
+  });
+}
+
+const auth = getAuth();
 const db = getFirestore(app);
 
 export async function signInUser(email: string, password: string): Promise<void> {
-  const auth = getAuth();
   await signInWithEmailAndPassword(auth, email, password);
 
   await auditActivity('LogIn');
@@ -28,7 +39,7 @@ export const timestamp = formatDate(new Date());
 
 async function 
 auditActivity(type: ActivityType, newValue: string = '', oldValue: string = '') {
-  const user = getAuth().currentUser;
+  const user = auth.currentUser;
   if (!user) return;
 
   const activity: Activity = {
@@ -51,7 +62,6 @@ auditActivity(type: ActivityType, newValue: string = '', oldValue: string = '') 
 }
 
 export async function signInWithGoogle(): Promise<void> {
-  const auth = getAuth();
   const provider = new GoogleAuthProvider();
   await signInWithPopup(auth, provider);
   const user = auth.currentUser;
@@ -82,7 +92,7 @@ export const storeFirestore = (() => {
     }
 
     async function getPlayerInfo(): Promise<Player|undefined> {
-      const user = getAuth().currentUser;
+      const user = auth.currentUser;
       if (!user) return;
 
       const players = await fetchPlayersList();
@@ -110,7 +120,7 @@ export const storeFirestore = (() => {
         setTimeout(() => {
           const collectionRef = collection(db, "/matches");
           const docId = 'fs-' + (matchCache.length + 1);
-          const saved = { ...matchRecord, id: docId, createdTs: timestamp, createdBy: getAuth().currentUser?.email! };
+          const saved = { ...matchRecord, id: docId, createdTs: timestamp, createdBy: auth.currentUser?.email! };
           setDoc(doc(collectionRef, docId), saved);  
           
           matchCache.push(saved);

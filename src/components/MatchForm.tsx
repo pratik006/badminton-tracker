@@ -5,12 +5,13 @@ import { timestamp } from "./firestore/storeFirestore";
 
 const MAX_SETS = 3;
 
-function MatchForm({ playersList, onAddMatch, matchType, onMatchTypeChange, matches }: 
+function MatchForm({ playersList, onAddMatch, matchType, onMatchTypeChange, matches, initialMatch }: 
       { playersList: Player[]; 
         onAddMatch: (match: Match) => Promise<void>; 
         matchType: MatchType; 
-        onMatchTypeChange: (type: MatchType) => void 
+        onMatchTypeChange: (type: MatchType) => void;
         matches: Match[];
+        initialMatch?: Match | null;
       }) {
   const [isPrefilled, setIsPrefilled] = useState(false);
   // Local form states
@@ -25,35 +26,65 @@ function MatchForm({ playersList, onAddMatch, matchType, onMatchTypeChange, matc
   const [adding, setAdding] = useState(false);
 
   useEffect(() => {
+    // If we have an initialMatch, use that to prefill the form
+    if (initialMatch) {
+      const team1 = initialMatch.team1 || [];
+      const team2 = initialMatch.team2 || [];
+      
+      setMatchPlayers({
+        team1p1: team1[0] || null,
+        team1p2: team1[1] || null,
+        team2p1: team2[0] || null,
+        team2p2: team2[1] || null,
+      });
+
+      // Set scores if available
+      if (initialMatch.team1Scores && initialMatch.team2Scores) {
+        const newScores = [];
+        for (let i = 0; i < initialMatch.team1Scores.length; i++) {
+          newScores.push({
+            team1: initialMatch.team1Scores[i]?.toString() || "",
+            team2: initialMatch.team2Scores[i]?.toString() || ""
+          });
+        }
+        setScores(newScores.length > 0 ? newScores : [{ team1: "", team2: "" }]);
+      }
+
+      // Set date if available
+      if (initialMatch.matchDate) {
+        setDate(initialMatch.matchDate);
+      }
+
+      // Set match type based on team sizes if not already set
+      if (team1.length === 1 && team2.length === 1) {
+        onMatchTypeChange("Singles");
+      } else {
+        onMatchTypeChange("Doubles");
+      }
+      
+      setIsPrefilled(true);
+      return;
+    }
+    
+    // Original logic for prefilling from today's match
     const today = new Date();
     const todayStr = today.toISOString().slice(0, 10);
     const matchToday = matches.find(
       (m) => m.matchDate && m.matchDate.slice(0, 10) === todayStr
     );
     
-    // Reset players & scores on match type change
-    if (matchType === "Singles") {
-      setMatchPlayers({ team1p1: null, team1p2: null, team2p1: null, team2p2: null });
-      setScores([{ team1: "", team2: "" }]);
-    } else {
-      setMatchPlayers({ team1p1: null, team1p2: null, team2p1: null, team2p2: null });
-      setScores([{ team1: "", team2: "" }]);
-    }
-
     if (matchToday) {
-      // Prefill form fields with matchToday data
       setMatchPlayers({
         team1p1: matchToday.team1[0],
-        team1p2: matchToday.team1[1] || "",
+        team1p2: matchToday.team1[1] || null,
         team2p1: matchToday.team2[0],
-        team2p2: matchToday.team2[1] || "",
+        team2p2: matchToday.team2[1] || null,
       });
       setIsPrefilled(true);
     } else {
       setIsPrefilled(false);
-      // Optionally clear form fields here
     }
-  }, [matchType, matches]);
+  }, [matchType, matches, initialMatch, onMatchTypeChange]);
 
   const handlePlayerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;

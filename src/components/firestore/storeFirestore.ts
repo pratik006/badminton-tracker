@@ -28,6 +28,7 @@ if (process.env.NODE_ENV === 'production') {
 
 const auth = getAuth();
 const db = getFirestore(app);
+export { app };
 
 export async function signInUser(email: string, password: string): Promise<void> {
   await signInWithEmailAndPassword(auth, email, password);

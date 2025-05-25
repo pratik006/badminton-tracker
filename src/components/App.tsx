@@ -14,6 +14,7 @@ import { FilterOption } from "../utils/DateFunctions";
 import Profile from "./Profile";
 import { parseTranscriptToMatch } from '../utils/transcriptDecoder';
 import { createSpeechRecognition, isSpeechRecognitionSupported, requestMicrophonePermission } from '../utils/speechRecognition';
+import { transcriptDecoderGemini } from '../utils/transcriptDecoderGemini';
 
 declare global {
   interface Window {
@@ -81,10 +82,11 @@ function App() {
     }
 
     speechRecognitionRef.current = createSpeechRecognition({
-      onResult: (transcript: string) => {
+      onResult: async (transcript: string) => {
         console.log('Speech Recognition Result:', transcript);
-        const match = parseTranscriptToMatch(transcript, playersList, currentUser?.uid || '');
+        const match = await transcriptDecoderGemini(transcript, playersList, currentUser?.uid || '');
         if (match) {
+          console.log(match)
           setParsedMatch(match);
           const formElement = document.getElementById('match-form');
           if (formElement) {

@@ -13,6 +13,7 @@ import { getAuth, onAuthStateChanged, signOut, User } from "firebase/auth";
 import { FilterOption } from "../utils/DateFunctions";
 import Profile from "./Profile";
 import { parseTranscriptToMatch } from '../utils/transcriptDecoder';
+import { createSpeechRecognition, isSpeechRecognitionSupported, requestMicrophonePermission } from '../utils/speechRecognition';
 
 declare global {
   interface Window {
@@ -31,8 +32,8 @@ function App() {
   const matchHistoryRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
   const [isListening, setIsListening] = useState(false);
-  const recognitionRef = useRef<any>(null);
   const [parsedMatch, setParsedMatch] = useState<Match | null>(null);
+  const speechRecognitionRef = useRef<ReturnType<typeof createSpeechRecognition> | null>(null);
 
   // Load players and matches initially
   useEffect(() => {
@@ -72,72 +73,74 @@ function App() {
     return () => unsubscribe();
   }, [currentUser, historyFilter]);
 
+  // Initialize speech recognition
   useEffect(() => {
-    // @ts-ignore - webkitSpeechRecognition is available in the browser
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (SpeechRecognition) {
-      console.log('Initializing speech recognition...');
-      recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = false;
-      recognitionRef.current.interimResults = false;
-      recognitionRef.current.lang = 'en-US';
-
-      recognitionRef.current.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript.toLowerCase();
-        console.log('Voice command:', transcript);
-        const match = parseTranscriptToMatch(transcript, playersList, currentUser?.uid || '');
-  
-        if (match) {
-          console.log('Parsed match:', match);
-          setParsedMatch(match);
-          // Scroll to the form to show the prefilled data
-          setTimeout(() => {
-            const formElement = document.getElementById('match-form');
-            if (formElement) {
-              formElement.scrollIntoView({ behavior: 'smooth' });
-            }
-          }, 100);
-        } 
-        // Add your voice command handling logic here
-      };
-
-      recognitionRef.current.onend = () => {
-        console.log('Speech recognition ended');
-        // If we're still supposed to be listening, restart
-        if (isListening) {
-          console.log('Restarting speech recognition');
-          recognitionRef.current.start();
-        }
-      };
-
-      recognitionRef.current.onerror = (event: any) => {
-        console.error('Speech recognition error:', event.error);
-        setIsListening(false);
-        
-        let errorMessage = 'Error with speech recognition';
-        switch(event.error) {
-          case 'not-allowed':
-            errorMessage = 'Microphone access was denied. Please allow microphone access in your browser settings.';
-            break;
-          case 'audio-capture':
-            errorMessage = 'No microphone was found. Please ensure a microphone is connected.';
-            break;
-          case 'not-supported':
-            errorMessage = 'Speech recognition is not supported in your browser.';
-            break;
-        }
-        
-        console.error('Speech recognition error details:', errorMessage);
-        alert(errorMessage);
-      };
+    if (!isSpeechRecognitionSupported()) {
+      console.warn('Speech recognition is not supported in this browser');
+      return;
     }
 
+    speechRecognitionRef.current = createSpeechRecognition({
+      onResult: (transcript: string) => {
+        console.log('Speech Recognition Result:', transcript);
+        const match = parseTranscriptToMatch(transcript, playersList, currentUser?.uid || '');
+        if (match) {
+          setParsedMatch(match);
+          const formElement = document.getElementById('match-form');
+          if (formElement) {
+            formElement.scrollIntoView({ behavior: 'smooth' });
+          }
+        }
+      },
+      onError: (error) => {
+        console.error('Speech recognition error:', error);
+        setIsListening(false);
+      },
+      onStart: () => {
+        console.log('Speech recognition started');
+        setIsListening(true);
+      },
+      onEnd: () => {
+        console.log('Speech recognition ended');
+        setIsListening(false);
+      },
+      continuous: false,
+      interimResults: false,
+      silenceTimeoutMs: 3000
+    });
+
     return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
+      if (speechRecognitionRef.current) {
+        speechRecognitionRef.current.stop();
       }
     };
-  }, [isListening]);
+  }, [playersList, currentUser]);
+
+  // Toggle voice recognition
+  const toggleVoiceRecognition = async () => {
+    if (!speechRecognitionRef.current) {
+      console.error('Speech recognition not initialized');
+      return;
+    }
+
+    if (isListening) {
+      speechRecognitionRef.current.stop();
+    } else {
+      try {
+        const hasPermission = await requestMicrophonePermission();
+        if (!hasPermission) {
+          alert('Microphone access is required for voice input');
+          return;
+        }
+        
+        setParsedMatch(null);
+        speechRecognitionRef.current.start();
+      } catch (error) {
+        console.error('Error starting speech recognition:', error);
+        alert('Failed to start voice input. Please try again.');
+      }
+    }
+  };
 
   const handleSignIn = async (username: string, password: string) => {
     try {
@@ -155,93 +158,6 @@ function App() {
       alert(error.message || "Failed to sign out");
     }
   };
-
-  const toggleVoiceRecognition = async () => {
-    if (!recognitionRef.current) {
-      alert('Speech recognition is not supported in your browser. Try using Chrome or Edge.');
-      return;
-    }
-  
-    if (isListening) {
-      console.log('Stopping speech recognition');
-      try {
-        // Stop any active media streams
-        const tracks = window.stream?.getTracks() || [];
-        tracks.forEach(track => track.stop());
-        
-        // Stop the recognition
-        recognitionRef.current.stop();
-        
-        // Reset the stream reference
-        window.stream = null;
-      } catch (err) {
-        console.error('Error stopping speech recognition:', err);
-      } finally {
-        setIsListening(false);
-      }
-    } else {
-      console.log('Starting speech recognition');
-      
-      try {
-        // First check if we can enumerate devices
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const audioInputs = devices.filter(device => device.kind === 'audioinput');
-        console.log('Available audio input devices:', audioInputs);
-        
-        if (audioInputs.length === 0) {
-          throw new Error('no-devices');
-        }
-        
-        // Request permission and get the media stream
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        
-        // Store the stream so we can stop it later
-        window.stream = stream;
-        
-        console.log('Microphone access granted');
-        recognitionRef.current.start();
-        setIsListening(true);
-      } catch (err: any) {
-        console.error('Microphone access error:', err);
-        
-        // Stop any media tracks that might have been created
-        if (window.stream) {
-          window.stream.getTracks().forEach(track => track.stop());
-          window.stream = null;
-        }
-        
-        setIsListening(false);
-        let errorMessage = 'Error accessing microphone. ';
-        
-        if (err.message === 'no-devices') {
-          errorMessage += 'No microphone was found. Please connect a microphone and try again.';
-        } else if (err.name === 'NotAllowedError') {
-          errorMessage = 'Microphone access was denied. Please allow microphone access in your browser settings.';
-        } else if (err.name === 'NotFoundError') {
-          errorMessage = 'No microphone was found. Please connect a microphone and try again.';
-        } else {
-          errorMessage += 'Please check your microphone connection and try again.';
-        }
-        
-        alert(errorMessage);
-      }
-    }
-  };
-
-  if (!currentUser) {
-    return <SignIn onSignIn={handleSignIn} />;
-  }
-
-  // Handle adding new match
-  async function handleAddMatch(match: Match) {
-    const savedMatch = await store.saveMatch(match) as Match;
-    setMatches((prev) => [savedMatch, ...prev]);
-
-    // Update players list if needed
-    savedMatch.team1.concat(savedMatch.team2).forEach((p) => {
-      if (!playersList.includes(p)) setPlayersList((pl) => [...pl, p]);
-    });
-  }
 
   // Scroll leaderboard into view on nav button click
   const scrollToLeaderboard = () => {
@@ -265,6 +181,21 @@ function App() {
     profileRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
+
+  // Handle adding new match
+  async function handleAddMatch(match: Match) {
+    const savedMatch = await store.saveMatch(match) as Match;
+    setMatches((prev) => [savedMatch, ...prev]);
+
+    // Update players list if needed
+    savedMatch.team1.concat(savedMatch.team2).forEach((p) => {
+      if (!playersList.includes(p)) setPlayersList((pl) => [...pl, p]);
+    });
+  }
+
+  if (!currentUser) {
+    return <SignIn onSignIn={handleSignIn} />;
+  }
 
   return (
     <>

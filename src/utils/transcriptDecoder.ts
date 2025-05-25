@@ -62,23 +62,53 @@ function parseScores(scoreStr: string): { team1Scores: number[], team2Scores: nu
   const team1Scores: number[] = [];
   const team2Scores: number[] = [];
   
-  // Split by any non-digit characters to get all numbers
-  const numbers = scoreStr.split(/\D+/).filter(Boolean).map(Number);
-  
-  // If we have at least two numbers at the end, treat them as team1 and team2 scores
-  if (numbers.length >= 2) {
-    const team1 = Math.min(numbers[numbers.length - 2], 30);
-    const team2 = Math.min(numbers[numbers.length - 1], 30);
+  if (!scoreStr) return { team1Scores, team2Scores };
+
+  // Handle different score formats:
+  // - "score is 21 space 18"
+  // - "21 18"
+  // - "21-18"
+  // - "21,18"
+  // - "21 space 18"
+  const scorePatterns = [
+    /score is (\d+)(?:\s+space\s+|\s+|[-,])(\d+)/i,  // "score is 21 space 18" or "score is 21-18"
+    /(\d+)(?:\s+space\s+|\s+|[-,])(\d+)/,         // "21 18", "21-18", "21,18", "21 space 18"
+    /(\d+)(\d{2})/                                // "2118" (for backward compatibility)
+  ];
+
+  for (const pattern of scorePatterns) {
+    const match = scoreStr.match(pattern);
+    if (match) {
+      const score1 = Math.min(parseInt(match[1], 10), 30);
+      const score2 = Math.min(parseInt(match[2], 10), 30);
+      
+      if (!isNaN(score1) && !isNaN(score2)) {
+        team1Scores.push(score1);
+        team2Scores.push(score2);
+        break;
+      }
+    }
+  }
+
+  // If no scores found with patterns, try to extract all numbers
+  if (team1Scores.length === 0) {
+    const numbers = scoreStr.split(/\D+/).filter(Boolean).map(Number);
     
-    team1Scores.push(team1);
-    team2Scores.push(team2);
-    
-    // If we have more numbers, process them as additional sets
-    for (let i = 0; i < numbers.length - 2; i += 2) {
-      const t1 = Math.min(numbers[i], 30);
-      const t2 = i + 1 < numbers.length ? Math.min(numbers[i + 1], 30) : 0;
-      team1Scores.unshift(t1);
-      team2Scores.unshift(t2);
+    // If we have at least two numbers at the end, treat them as team1 and team2 scores
+    if (numbers.length >= 2) {
+      const team1 = Math.min(numbers[numbers.length - 2], 30);
+      const team2 = Math.min(numbers[numbers.length - 1], 30);
+      
+      team1Scores.push(team1);
+      team2Scores.push(team2);
+      
+      // If we have more numbers, process them as additional sets
+      for (let i = 0; i < numbers.length - 2; i += 2) {
+        const t1 = Math.min(numbers[i], 30);
+        const t2 = i + 1 < numbers.length ? Math.min(numbers[i + 1], 30) : 0;
+        team1Scores.unshift(t1);
+        team2Scores.unshift(t2);
+      }
     }
   }
   
@@ -150,22 +180,49 @@ function extractMatchData(transcript: string, players: Player[]): PartialMatch |
     }
   }
 
-  // Try to extract player names
-  const namePatterns = [
-    // "[name1] and [name2] (beat|vs) [name3] and [name4]"
-    /(?:^|\s)([a-z]+)(?:\s+and\s+([a-z]+))?\s+(?:beat|vs\.?|versus?)\s+([a-z]+)(?:\s+and\s+([a-z]+))?/i,
-    // "[name1] [name2] vs [name3] [name4]"
-    /(?:^|\s)([a-z]+)(?:\s+([a-z]+))?\s+vs\.?\s+([a-z]+)(?:\s+([a-z]+))?/i,
+  // Try different patterns to extract player names
+  const patterns = [
+    // Pattern for "priyanka pratyek versus shyam and hasu"
+    /^(.+?)\s+(?:vs|versus)\s+(.+?)(?:\s+\d+\s+\d+)?$/i,
+    // Existing patterns...
+    /^(\w+)(?:\s+and\s+(\w+))?\s+(?:beat|won)\s+(?:against\s+)?(\w+)(?:\s+and\s+(\w+))?/i,
+    /^(\w+)(?:\s+and\s+(\w+))?\s+vs\.?\s+(\w+)(?:\s+and\s+(\w+))?/i,
+    /^(\w+)(?:\s*,\s*(\w+))?\s+(?:beat|won)\s+(?:against\s+)?(\w+)(?:\s*,\s*(\w+))?/i,
+    /^(\w+)(?:\s*&\s*(\w+))?\s+(?:beat|won)\s+(?:against\s+)?(\w+)(?:\s*&\s*(\w+))?/i,
+    /^(\w+)(?:\s+and\s+(\w+))?\s+(\d+)[-\s]+(\d+)/i,
+    /^(\w+)\s+(?:beat|won)\s+(?:against\s+)?(\w+)/i,
+    /^(\w+)\s+(\d+)[-\s]+(\d+)/i,
+    /^(\w+)(?:\s+and\s+(\w+))?/i
   ];
 
-  for (const pattern of namePatterns) {
+  for (const pattern of patterns) {
     const match = transcript.match(pattern);
     if (match) {
-      const [_, p1, p2, p3, p4] = match;
+      console.log('Match found with pattern:', pattern, 'Groups:', match);
       
-      // Find players by name
-      const team1Players = findPlayers([p1, p2].filter(Boolean) as string[], players);
-      const team2Players = findPlayers([p3, p4].filter(Boolean) as string[], players);
+      // Extract names based on the pattern
+      let team1Names: string[] = [];
+      let team2Names: string[] = [];
+      
+      if (pattern.toString().includes('vs|versus')) {
+        // Handle the new pattern with spaces between names on the same team
+        const [_, team1Part, team2Part] = match;
+        team1Names = team1Part.split(/\s+/).filter(name => name && !/^vs|versus$/i.test(name));
+        team2Names = team2Part.split(/\s+/).filter(name => name && !/^vs|versus$/i.test(name));
+      } else {
+        // Handle existing patterns
+        const [_, p1, p2, p3, p4] = match;
+        if (p1) team1Names.push(p1);
+        if (p2) team1Names.push(p2);
+        if (p3) team2Names.push(p3);
+        if (p4) team2Names.push(p4);
+      }
+      
+      console.log('Extracted names - Team 1:', team1Names, 'Team 2:', team2Names);
+      
+      // Find players for each team
+      const team1Players = findPlayers(team1Names, players);
+      const team2Players = findPlayers(team2Names, players);
       
       if (team1Players.length > 0) result.team1 = team1Players;
       if (team2Players.length > 0) result.team2 = team2Players;
@@ -185,41 +242,137 @@ function extractMatchData(transcript: string, players: Player[]): PartialMatch |
   return null;
 }
 
-// Helper function to find players by name with fuzzy matching
-function findPlayers(names: string[], players: Player[]): Player[] {
-  const foundPlayers: Player[] = [];
+// Helper function to calculate Levenshtein distance between two strings
+function levenshteinDistance(a: string, b: string): number {
+  if (a.length === 0) return b.length;
+  if (b.length === 0) return a.length;
+
+  const matrix: number[][] = [];
+
+  // Initialize the matrix
+  for (let i = 0; i <= b.length; i++) {
+    matrix[i] = [i];
+  }
+  for (let j = 0; j <= a.length; j++) {
+    matrix[0][j] = j;
+  }
+
+  // Fill in the matrix
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      const cost = a[j - 1] === b[i - 1] ? 0 : 1;
+      matrix[i][j] = Math.min(
+        matrix[i - 1][j] + 1, // Deletion
+        matrix[i][j - 1] + 1, // Insertion
+        matrix[i - 1][j - 1] + cost // Substitution
+      );
+    }
+  }
+
+  return matrix[b.length][a.length];
+}
+
+// Helper function to find the best match using fuzzy search
+function findBestMatch(input: string, options: string[]): { bestMatch: string | null; distance: number } {
+  if (!options.length) return { bestMatch: null, distance: Infinity };
   
-  for (const name of names) {
-    if (!name) continue;
-    
-    // Skip common words that might be mistaken for names
-    const commonWords = ['and', 'vs', 'versus', 'beat', 'won', 'lost', 'to'];
-    if (commonWords.includes(name.toLowerCase())) continue;
-    
-    // Try exact match first (case insensitive)
-    let player = players.find(p => p.name.toLowerCase() === name.toLowerCase());
-    
-    // If no exact match, try partial match on first name
-    if (!player) {
-      player = players.find(p => 
-        p.name.toLowerCase().split(/\s+/).some(part => 
-          part.toLowerCase().startsWith(name.toLowerCase())
-        )
-      );
-    }
-    
-    // If still no match, try any partial match
-    if (!player) {
-      player = players.find(p => 
-        p.name.toLowerCase().includes(name.toLowerCase())
-      );
-    }
-    
-    if (player && !foundPlayers.some(p => p.id === player!.id)) {
-      foundPlayers.push(player);
+  const inputLower = input.toLowerCase();
+  const optionsLower = options.map(opt => opt.toLowerCase());
+  
+  // First try exact match
+  const exactMatchIndex = optionsLower.findIndex(opt => opt === inputLower);
+  if (exactMatchIndex >= 0) {
+    return { bestMatch: options[exactMatchIndex], distance: 0 };
+  }
+  
+  // Try startsWith
+  const startsWithMatch = optionsLower.find(opt => opt.startsWith(inputLower) || inputLower.startsWith(opt));
+  if (startsWithMatch) {
+    return { 
+      bestMatch: options[optionsLower.indexOf(startsWithMatch)], 
+      distance: Math.abs(inputLower.length - startsWithMatch.length) 
+    };
+  }
+  
+  // Try includes
+  const includesMatch = optionsLower.find(opt => opt.includes(inputLower) || inputLower.includes(opt));
+  if (includesMatch) {
+    return { 
+      bestMatch: options[optionsLower.indexOf(includesMatch)], 
+      distance: Math.abs(inputLower.length - includesMatch.length) 
+    };
+  }
+  
+  // Fall back to Levenshtein distance
+  let minDistance = Infinity;
+  let bestMatch = options[0];
+  
+  for (const option of options) {
+    const distance = levenshteinDistance(inputLower, option.toLowerCase());
+    if (distance < minDistance) {
+      minDistance = distance;
+      bestMatch = option;
     }
   }
   
+  // Only return a match if it's reasonably close
+  const maxAllowedDistance = Math.min(3, Math.ceil(input.length / 2));
+  return {
+    bestMatch: minDistance <= maxAllowedDistance ? bestMatch : null,
+    distance: minDistance
+  };
+}
+
+// Helper function to find players by name with fuzzy matching
+function findPlayers(names: string[], players: Player[]): Player[] {
+  console.log('findPlayers called with:', { names, availablePlayers: players.map(p => p.name) });
+  const foundPlayers: Player[] = [];
+  if (!names || !players || !Array.isArray(players)) {
+    console.log('Invalid input - names or players array is empty or invalid');
+    return foundPlayers;
+  }
+
+  // Pre-process names to handle common variations
+  const normalizeName = (name: string) => name.toLowerCase().trim();
+  
+  // Get all player names for fuzzy matching
+  const playerNames = players.map(p => p.name);
+  console.log('Available player names:', playerNames);
+
+  for (const name of names) {
+    if (!name) continue;
+    
+    const normalizedInput = normalizeName(name);
+    console.log('Processing name:', { original: name, normalized: normalizedInput });
+    
+    // Skip common words that might be mistaken for names
+    const commonWords = ['and', 'vs', 'versus', 'beat', 'won', 'lost', 'to', 'score', 'scores', 'is', 'are'];
+    if (commonWords.includes(normalizedInput)) {
+      console.log('Skipping common word:', normalizedInput);
+      continue;
+    }
+    
+    // Try to find the best match
+    console.log('Looking for best match for:', normalizedInput);
+    const { bestMatch, distance } = findBestMatch(normalizedInput, playerNames);
+    console.log('Best match result:', { bestMatch, distance });
+    
+    if (bestMatch) {
+      const player = players.find(p => p.name === bestMatch);
+      console.log('Found player:', player);
+      
+      if (player && !foundPlayers.some(p => p.id === player.id)) {
+        console.log('Adding player to found players:', player.name);
+        foundPlayers.push(player);
+      } else {
+        console.log('Player not found or already added');
+      }
+    } else {
+      console.log('No good match found for:', normalizedInput);
+    }
+  }
+  
+  console.log('Final found players:', foundPlayers.map(p => p.name));
   return foundPlayers;
 }
 

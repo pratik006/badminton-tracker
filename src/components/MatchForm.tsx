@@ -5,12 +5,11 @@ import { timestamp } from "./firestore/storeFirestore";
 
 const MAX_SETS = 3;
 
-function MatchForm({ playersList, onAddMatch, matchType, onMatchTypeChange, matches, initialMatch }: 
+function MatchForm({ playersList, onAddMatch, matchType, onMatchTypeChange, initialMatch }: 
       { playersList: Player[]; 
         onAddMatch: (match: Match) => Promise<void>; 
         matchType: MatchType; 
         onMatchTypeChange: (type: MatchType) => void;
-        matches: Match[];
         initialMatch?: Match | null;
       }) {
   const [isPrefilled, setIsPrefilled] = useState(false);
@@ -24,6 +23,43 @@ function MatchForm({ playersList, onAddMatch, matchType, onMatchTypeChange, matc
   const [scores, setScores] = useState([{ team1: "", team2: "" }]);
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [adding, setAdding] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+
+  useEffect(() => {
+    if (showSuccess) {
+      const timer = setTimeout(() => {
+        setShowSuccess(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [showSuccess]);
+
+  const successBannerStyle: React.CSSProperties = {
+    position: 'fixed',
+    top: '20px',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    backgroundColor: '#4CAF50',
+    color: 'white',
+    padding: '12px 24px',
+    borderRadius: '4px',
+    boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
+    zIndex: 1000,
+    display: showSuccess ? 'block' : 'none',
+    animation: 'fadeIn 0.3s, fadeOut 0.5s 2.5s',
+  };
+
+  const globalStyles = `
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translate(-50%, -20px); }
+      to { opacity: 1; transform: translate(-50%, 0); }
+    }
+    @keyframes fadeOut {
+      from { opacity: 1; transform: translate(-50%, 0); }
+      to { opacity: 0; transform: translate(-50%, -20px); }
+    }
+  `;
 
   useEffect(() => {
     // If we have an initialMatch, use that to prefill the form
@@ -63,28 +99,11 @@ function MatchForm({ playersList, onAddMatch, matchType, onMatchTypeChange, matc
       }
       
       setIsPrefilled(true);
-      return;
-    }
-    
-    // Original logic for prefilling from today's match
-    const today = new Date();
-    const todayStr = today.toISOString().slice(0, 10);
-    const matchToday = matches.find(
-      (m) => m.matchDate && m.matchDate.slice(0, 10) === todayStr
-    );
-    
-    if (matchToday) {
-      setMatchPlayers({
-        team1p1: matchToday.team1[0],
-        team1p2: matchToday.team1[1] || null,
-        team2p1: matchToday.team2[0],
-        team2p2: matchToday.team2[1] || null,
-      });
-      setIsPrefilled(true);
     } else {
+      // Reset to default empty state
       setIsPrefilled(false);
     }
-  }, [matchType, matches, initialMatch, onMatchTypeChange]);
+  }, [matchType, initialMatch, onMatchTypeChange]);
 
   const handlePlayerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -201,14 +220,32 @@ function MatchForm({ playersList, onAddMatch, matchType, onMatchTypeChange, matc
 
     setAdding(true);
 
-    const team1 =
-      matchType === "Singles"
-        ? [matchPlayers.team1p1]
-        : [matchPlayers.team1p1, matchPlayers.team1p2];
-    const team2 =
-      matchType === "Singles"
-        ? [matchPlayers.team2p1]
-        : [matchPlayers.team2p1, matchPlayers.team2p2];
+    // Format current date as yyyy-MM-ddTHH:mm:ss for match ID
+    const now = new Date();
+    const formatNum = (num: number) => num.toString().padStart(2, '0');
+    const formattedDate = `${now.getFullYear()}-${formatNum(now.getMonth() + 1)}-${formatNum(now.getDate())}T${formatNum(now.getHours())}:${formatNum(now.getMinutes())}:${formatNum(now.getSeconds())}`;
+    const matchId = `match-${formattedDate}`;
+
+    // Helper function to safely get player data
+    const getPlayerData = (player: Player | null) => {
+      if (!player) return null;
+      return {
+        id: player.id,
+        name: player.name,
+        email: player.email || null,
+        ...(player.avatar && { avatar: player.avatar })
+      };
+    };
+
+    const team1 = [
+      getPlayerData(matchPlayers.team1p1),
+      matchType === "Doubles" ? getPlayerData(matchPlayers.team1p2) : null
+    ].filter(Boolean);
+
+    const team2 = [
+      getPlayerData(matchPlayers.team2p1),
+      matchType === "Doubles" ? getPlayerData(matchPlayers.team2p2) : null
+    ].filter(Boolean);
 
     const team1Scores = scores.map((s) => parseInt(s.team1) || 0);
     const team2Scores = scores.map((s) => parseInt(s.team2) || 0);
@@ -225,200 +262,218 @@ function MatchForm({ playersList, onAddMatch, matchType, onMatchTypeChange, matc
     else if (t2Wins > t1Wins) winner = 2;
 
     const newMatch = {
-      id: -1,
-      type: matchType,
+      id: matchId,
       team1,
       team2,
       team1Scores,
       team2Scores,
       winner,
-      matchDate: date,
+      matchDate: date, // This should be in YYYY-MM-DD format
       createdTs: timestamp,
-      createdBy: getAuth().currentUser?.email!
+      createdBy: getAuth().currentUser?.email || 'unknown'
     };
 
-    await onAddMatch(newMatch as Match);
-
-    setAdding(false);
-    // Reset after add
-    setMatchPlayers({
-      team1p1: null,
-      team1p2: null,
-      team2p1: null,
-      team2p2: null,
-    });
-    setScores([{ team1: "", team2: "" }]);
-    setDate(new Date().toISOString().slice(0, 10));
+    try {
+      await onAddMatch(newMatch as Match);
+      
+      // Reset form after successful submission
+      setMatchPlayers({
+        team1p1: null,
+        team1p2: null,
+        team2p1: null,
+        team2p2: null,
+      });
+      setScores([{ team1: "", team2: "" }]);
+      setDate(new Date().toISOString().slice(0, 10));
+      setIsPrefilled(false);
+      onMatchTypeChange("Doubles"); // Reset match type to default
+      setSuccessMessage(`Match ${newMatch.id} successfully added to history!`);
+      setShowSuccess(true);
+      
+    } catch (error) {
+      console.error('Error saving match:', error);
+      alert('Failed to save match. Please try again.');
+    } finally {
+      setAdding(false);
+    }
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <div className="btn-group" role="group" aria-label="Select match type">
-        <button
-          type="button"
-          className={matchType === "Doubles" ? "active" : ""}
-          aria-pressed={matchType === "Doubles"}
-          onClick={() => onMatchTypeChange("Doubles")}
-        >
-          Doubles
-        </button>
-        <button
-          type="button"
-          className={matchType === "Singles" ? "active" : ""}
-          aria-pressed={matchType === "Singles"}
-          onClick={() => onMatchTypeChange("Singles")}
-        >
-          Singles
-        </button>        
-      </div>
-
-      <div className="player-inputs">
-        {/* Render players inputs dynamically */}
-        <div className="input-wrapper half">
-          <label htmlFor="team1p1">{matchType === "Singles" ? "Team 1 Player" : "Team 1 Player 1"}</label>
-          <input
-            type="text"
-            id="team1p1"
-            name="team1p1"
-            list="team1p1List"
-            autoComplete="off"
-            value={matchPlayers.team1p1?.name || ""}
-            onChange={handlePlayerChange}
-            required
-            placeholder="Search or type"
-            style={isPrefilled ? { color: "var(--color-text-muted)" } : {}}
-          />
-          <datalist id="team1p1List">
-            {playersList.map((p) => (
-              <option key={p.id} value={p.name} />
-            ))}
-          </datalist>
+    <>
+      <style>{globalStyles}</style>
+      {showSuccess && (
+        <div style={successBannerStyle}>
+          {successMessage}
+        </div>
+      )}
+      <form onSubmit={handleSubmit}>
+        <div className="btn-group" role="group" aria-label="Select match type">
+          <button
+            type="button"
+            className={matchType === "Doubles" ? "active" : ""}
+            aria-pressed={matchType === "Doubles"}
+            onClick={() => onMatchTypeChange("Doubles")}
+          >
+            Doubles
+          </button>
+          <button
+            type="button"
+            className={matchType === "Singles" ? "active" : ""}
+            aria-pressed={matchType === "Singles"}
+            onClick={() => onMatchTypeChange("Singles")}
+          >
+            Singles
+          </button>        
         </div>
 
-        {matchType === "Doubles" && (
+        <div className="player-inputs">
+          {/* Render players inputs dynamically */}
           <div className="input-wrapper half">
-            <label htmlFor="team1p2">Team 1 Player 2</label>
+            <label htmlFor="team1p1">{matchType === "Singles" ? "Team 1 Player" : "Team 1 Player 1"}</label>
             <input
               type="text"
-              id="team1p2"
-              name="team1p2"
-              list="team1p2List"
+              id="team1p1"
+              name="team1p1"
+              list="team1p1List"
               autoComplete="off"
-              value={matchPlayers.team1p2?.name || ""}
+              value={matchPlayers.team1p1?.name || ""}
               onChange={handlePlayerChange}
               required
               placeholder="Search or type"
               style={isPrefilled ? { color: "var(--color-text-muted)" } : {}}
             />
-            <datalist id="team1p2List">
+            <datalist id="team1p1List">
               {playersList.map((p) => (
-                <option key={p.id} value={p.name} />
+                <option key={`t1p1-${p.id}`} value={p.name} />
               ))}
             </datalist>
           </div>
-        )}
 
-        <div className="input-wrapper half">
-          <label htmlFor="team2p1">{matchType === "Singles" ? "Team 2 Player" : "Team 2 Player 1"}</label>
-          <input
-            type="text"
-            id="team2p1"
-            name="team2p1"
-            list="team2p1List"
-            autoComplete="off"
-            value={matchPlayers.team2p1?.name || ""}
-            onChange={handlePlayerChange}
-            required
-            placeholder="Search or type"
-            style={isPrefilled ? { color: "var(--color-text-muted)" } : {}}
-          />
-          <datalist id="team2p1List">
-            {playersList.map((p) => (
-              <option key={p.id} value={p.name} />
-            ))}
-          </datalist>
-        </div>
+          {matchType === "Doubles" && (
+            <div className="input-wrapper half">
+              <label htmlFor="team1p2">Team 1 Player 2</label>
+              <input
+                type="text"
+                id="team1p2"
+                name="team1p2"
+                list="team1p2List"
+                autoComplete="off"
+                value={matchPlayers.team1p2?.name || ""}
+                onChange={handlePlayerChange}
+                required
+                placeholder="Search or type"
+                style={isPrefilled ? { color: "var(--color-text-muted)" } : {}}
+              />
+              <datalist id="team1p2List">
+                {playersList.map((p) => (
+                  <option key={`t1p2-${p.id}`} value={p.name} />
+                ))}
+              </datalist>
+            </div>
+          )}
 
-        {matchType === "Doubles" && (
           <div className="input-wrapper half">
-            <label htmlFor="team2p2">Team 2 Player 2</label>
+            <label htmlFor="team2p1">{matchType === "Singles" ? "Team 2 Player" : "Team 2 Player 1"}</label>
             <input
               type="text"
-              id="team2p2"
-              name="team2p2"
-              list="team2p2List"
+              id="team2p1"
+              name="team2p1"
+              list="team2p1List"
               autoComplete="off"
-              value={matchPlayers.team2p2?.name || ""}
+              value={matchPlayers.team2p1?.name || ""}
               onChange={handlePlayerChange}
               required
               placeholder="Search or type"
               style={isPrefilled ? { color: "var(--color-text-muted)" } : {}}
-              />
-            <datalist id="team2p2List">
+            />
+            <datalist id="team2p1List">
               {playersList.map((p) => (
-                <option key={p.id} value={p.name} />
+                <option key={`t2p1-${p.id}`} value={p.name} />
               ))}
             </datalist>
           </div>
-        )}
-      </div>
 
-      <div className="input-wrapper half">
-        <label htmlFor="matchDate">Match Date</label>
-        <input
-          type="date"
-          id="matchDate"
-          name="matchDate"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          required
-        />
-      </div>
-
-      <div>
-        {scores.map((setScore, i) => (
-          <div className="scores-group" key={`set-${i}`}>
+          {matchType === "Doubles" && (
             <div className="input-wrapper half">
-              <label htmlFor={`team1Set${i + 1}`}>Set {i + 1} - Team 1 Score</label>
+              <label htmlFor="team2p2">Team 2 Player 2</label>
               <input
-                id={`team1Set${i + 1}`}
-                type="number"
-                min="0"
-                max="30"
-                value={setScore.team1}
-                onChange={(e) => handleScoreChange(i, "team1", e.target.value)}
-                onBlur={(e) => updateOtherScore(i, "team1", e.target.value)}
+                type="text"
+                id="team2p2"
+                name="team2p2"
+                list="team2p2List"
+                autoComplete="off"
+                value={matchPlayers.team2p2?.name || ""}
+                onChange={handlePlayerChange}
                 required
-                placeholder="0"
-              />
+                placeholder="Search or type"
+                style={isPrefilled ? { color: "var(--color-text-muted)" } : {}}
+                />
+              <datalist id="team2p2List">
+                {playersList.map((p) => (
+                  <option key={`t2p2-${p.id}`} value={p.name} />
+                ))}
+              </datalist>
             </div>
+          )}
+        </div>
 
-            <div className="input-wrapper half">
-              <label htmlFor={`team2Set${i + 1}`}>Set {i + 1} - Team 2 Score</label>
-              <input
-                id={`team2Set${i + 1}`}
-                type="number"
-                min="0"
-                max="30"
-                value={setScore.team2}
-                onChange={(e) => handleScoreChange(i, "team2", e.target.value)}
-                onBlur={(e) => updateOtherScore(i, "team2", e.target.value)}
-                required
-                placeholder="0"
-              />
+        <div className="input-wrapper half">
+          <label htmlFor="matchDate">Match Date</label>
+          <input
+            type="date"
+            id="matchDate"
+            name="matchDate"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            required
+          />
+        </div>
+
+        <div>
+          {scores.map((setScore, i) => (
+            <div className="scores-group" key={`set-${i}`}>
+              <div className="input-wrapper half">
+                <label htmlFor={`team1Set${i + 1}`}>Set {i + 1} - Team 1 Score</label>
+                <input
+                  id={`team1Set${i + 1}`}
+                  type="number"
+                  min="0"
+                  max="30"
+                  value={setScore.team1}
+                  onChange={(e) => handleScoreChange(i, "team1", e.target.value)}
+                  onBlur={(e) => updateOtherScore(i, "team1", e.target.value)}
+                  required
+                  placeholder="0"
+                />
+              </div>
+
+              <div className="input-wrapper half">
+                <label htmlFor={`team2Set${i + 1}`}>Set {i + 1} - Team 2 Score</label>
+                <input
+                  id={`team2Set${i + 1}`}
+                  type="number"
+                  min="0"
+                  max="30"
+                  value={setScore.team2}
+                  onChange={(e) => handleScoreChange(i, "team2", e.target.value)}
+                  onBlur={(e) => updateOtherScore(i, "team2", e.target.value)}
+                  required
+                  placeholder="0"
+                />
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
 
-      {/* <button type="button" id="addSetBtn" onClick={addSet} disabled={scores.length >= MAX_SETS}>
-        Add Set
-      </button> */}
+        {/* <button type="button" id="addSetBtn" onClick={addSet} disabled={scores.length >= MAX_SETS}>
+          Add Set
+        </button> */}
 
-      <button type="submit" className="submit-btn" disabled={adding}>
-        {adding ? "Adding..." : "Add Match to History"}
-      </button>
-    </form>
+        <button type="submit" className="submit-btn" disabled={adding}>
+          {adding ? "Adding..." : "Add Match to History"}
+        </button>
+      </form>
+    </>
   );
 }
 

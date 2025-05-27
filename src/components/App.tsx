@@ -46,28 +46,13 @@ function App() {
       const players: Player[] = await store.fetchPlayersList();
       const matchesFetched: Match[] = await store.fetchMatchHistory(historyFilter);
       
-      // Build recentPlayers: most recent first, no duplicates
-      const recentPlayers: Player[] = [];
-      const seen = new Set<string>();
-      for (const match of matchesFetched) {
-        for (const player of [...match.team1, ...match.team2]) {
-          const key = String(player.id ?? player.name);
-          if (!seen.has(key)) {
-            recentPlayers.push(player);
-            seen.add(key);
-          }
-        }
-      }
+      // Ensure each player has a unique key
+      const playersWithKeys = players.map(player => ({
+        ...player,
+        _key: `player-${player.id}`
+      }));
       
-      for (const player of players) {
-        const key = String(player.id ?? player.name);
-        if (!seen.has(key)) {
-          recentPlayers.push(player);
-          seen.add(key);
-        }
-      }
-
-      setPlayersList(recentPlayers);
+      setPlayersList(playersWithKeys);
       setMatches(matchesFetched);
     }
     loadData();
@@ -190,9 +175,9 @@ function App() {
     setMatches((prev) => [savedMatch, ...prev]);
 
     // Update players list if needed
-    savedMatch.team1.concat(savedMatch.team2).forEach((p) => {
-      if (!playersList.includes(p)) setPlayersList((pl) => [...pl, p]);
-    });
+    // savedMatch.team1.concat(savedMatch.team2).forEach((p) => {
+    //   if (!playersList.includes(p)) setPlayersList((pl) => [...pl, p]);
+    // });
   }
 
   if (!currentUser) {
@@ -240,7 +225,6 @@ function App() {
               onAddMatch={handleAddMatch}
               matchType={matchType}
               onMatchTypeChange={setMatchType}
-              matches={matches}
               initialMatch={parsedMatch}
             />
           </div>

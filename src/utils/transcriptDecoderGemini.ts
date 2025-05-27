@@ -146,7 +146,7 @@ export async function transcriptDecoderGemini(
       team2: team2Players,
       team1Scores: parsedData.scores.map(s => s[0]),
       team2Scores: parsedData.scores.map(s => s[1]),
-      matchDate: parsedData.matchDate || new Date().toISOString().split('T')[0],
+      matchDate: new Date().toISOString().split('T')[0],
       createdTs: new Date().toISOString(),
       createdBy: currentUser,
       winner

@@ -117,18 +117,44 @@ export const storeFirestore = (() => {
     }
   
     async function saveMatch(matchRecord: Match) {
-      return new Promise<Match>(res => {
-        setTimeout(() => {
+      return new Promise<Match>(async (res) => {
+        try {
           const collectionRef = collection(db, "/matches");
-          const docId = 'fs-' + (matchCache.length + 1);
-          const saved = { ...matchRecord, id: docId, createdTs: timestamp, createdBy: auth.currentUser?.email! };
-          setDoc(doc(collectionRef, docId), saved);  
+          // Use timestamp for unique ID instead of array length
+          const docId = ""+matchRecord.id;
           
-          matchCache.push(saved);
-          res(saved);
+          // Create a clean object with only defined values
+          const matchToSave: any = {
+            id: matchRecord.id,
+            team1: matchRecord.team1.map((p: Player) => ({id: p.id, name: p.name})),
+            team2: matchRecord.team2.map((p: Player) => ({id: p.id, name: p.name})),
+            team1Scores: matchRecord.team1Scores,
+            team2Scores: matchRecord.team2Scores,
+            winner: matchRecord.winner || 0,
+            createdTs: timestamp,
+            createdBy: auth.currentUser?.email || 'unknown',
+          };
 
-          auditActivity('SaveMatch', JSON.stringify(saved));
-        }, 300);
+          // Add optional fields if they exist
+          if (matchRecord.matchDate) {
+            matchToSave.matchDate = matchRecord.matchDate;
+          }
+
+          console.log('Saving match:', matchToSave);
+          await setDoc(doc(collectionRef, docId), matchToSave);
+          
+          // Add to cache with the same ID
+          matchCache.push({
+            ...matchToSave,
+            id: docId
+          });
+          
+          res(matchToSave);
+          auditActivity('SaveMatch', JSON.stringify(matchToSave));
+        } catch (error) {
+          console.error('Error saving match:', error);
+          throw error;
+        }
       });
     }
   

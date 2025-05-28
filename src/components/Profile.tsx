@@ -63,7 +63,7 @@ const Profile: React.FC<ProfileProps> = ({
         {
           player && (
             <img 
-              src={defaultAvatarPath} 
+              src={player.avatar || defaultAvatarPath} 
               alt={`${player.name}'s profile`} 
               className={styles.avatar}
               onError={(e) => {
